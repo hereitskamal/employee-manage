@@ -1,0 +1,16 @@
+ export const departments = [
+        "Accounting",
+        "Human Resources",
+        "Sales",
+        "Marketing",
+        "Engineering",
+        "Customer Service",
+        "Product Management",
+        "Information Technology",
+        "Operations",
+        "Legal",
+        "Finance",
+        "Research and Development",
+        "Quality Assurance",
+        "Administration",
+    ];
