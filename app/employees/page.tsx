@@ -29,14 +29,14 @@ export default function Home() {
         <Box sx={{ backgroundColor: "#f8f9fa", minHeight: "100vh", p: 4 }}>
             <Breadcrumbs aria-label="breadcrumb" sx={{ mb: 2 }}>
                 <Link
-                    underline="hover"
+                    // underline="hover"
                     color="inherit"
                     href="#"
                     onClick={(e) => {
                         e.preventDefault();
                         router.push("/");
                     }}
-                    sx={{ cursor: "pointer" }}
+                    // sx={{ cursor: "pointer" }}
                 >
                     Home
                 </Link>
