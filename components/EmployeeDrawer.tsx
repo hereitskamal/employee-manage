@@ -17,10 +17,28 @@ export default function EmployeeDrawer({ id, onClose, onDeleteSuccess }: Employe
     if (!employee) return;
     if (!confirm("Are you sure you want to delete this employee?")) return;
 
-    await fetch(`/api/employees/${employee.id}`, { method: "DELETE" });
+    try {
+      const res = await fetch(`/api/employees/${employee.id}`, { method: "DELETE" });
 
-    onDeleteSuccess();
-    onClose();
+      if (!res.ok) {
+        let message = "Failed to delete employee";
+        try {
+          const data = await res.json();
+          if (data?.message) message = data.message;
+        } catch {
+          const text = await res.text();
+          if (text) message = text;
+        }
+        alert(message);
+        return;
+      }
+
+      onDeleteSuccess();
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete employee:", err);
+      alert("Something went wrong while deleting the employee. Please try again.");
+    }
   };
 
   return (

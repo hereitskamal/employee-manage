@@ -8,22 +8,23 @@ import {
     TextField,
     Button,
     Stack,
-    MenuItem,
     Typography,
     Divider,
     InputAdornment,
     CircularProgress,
+    Autocomplete,
 } from "@mui/material";
 import { useEffect, useState, FormEvent } from "react";
 import { Save, PersonAdd, Close } from "@mui/icons-material";
 import { EmployeeForm } from "@/types/employee";
-
 
 interface AddEmployeeModalProps {
     open: boolean;
     onClose: () => void;
     onAdded?: () => void;
 }
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployeeModalProps) {
     const [departments, setDepartments] = useState<string[]>([]);
@@ -72,6 +73,8 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                 if (res.ok) {
                     const data = await res.json();
                     setDepartments(data);
+                } else {
+                    console.error("Failed to load departments", await res.text());
                 }
             } catch (err) {
                 console.error("Failed to load departments:", err);
@@ -85,28 +88,84 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
 
     const handleChange = (field: keyof EmployeeForm, value: string | number) => {
         setForm((prev) => ({ ...prev, [field]: value }));
-        // Clear error on change
         if (errors[field as string]) {
             setErrors((prev) => ({ ...prev, [field as string]: "" }));
         }
     };
 
+    const validateDate = (dateStr: string): string | null => {
+        if (!dateStr) return null;
+
+        const [year, month, day] = dateStr.split("-").map(Number);
+        const date = new Date(dateStr);
+
+        // Invalid date (like 31st Feb)
+        if (
+            !year ||
+            !month ||
+            !day ||
+            isNaN(date.getTime()) ||
+            date.getFullYear() !== year ||
+            date.getMonth() + 1 !== month ||
+            date.getDate() !== day
+        ) {
+            return "Please select a valid date";
+        }
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (date > today) {
+            return "Hire date cannot be in the future";
+        }
+
+        return null;
+    };
+
     const validate = (): boolean => {
         const newErrors: { [key: string]: string } = {};
+
         if (!form.name.trim()) newErrors.name = "Name is required";
-        if (!form.email.trim()) newErrors.email = "Email is required";
-        if (!form.department) newErrors.department = "Department is required";
+
+        if (!form.email.trim()) {
+            newErrors.email = "Email is required";
+        } else if (!EMAIL_REGEX.test(form.email.trim())) {
+            newErrors.email = "Please enter a valid email address";
+        }
+
+        if (!form.department?.trim()) newErrors.department = "Department is required";
+
         if (!form.salary || form.salary <= 0) newErrors.salary = "Valid salary is required";
-        if (!form.age || form.age <= 0) newErrors.age = "Valid age is required";
-        if (form.performance && (form.performance < 0 || form.performance > 100)) {
-            newErrors.performance = "Performance must be 0-100";
+
+        if (!form.age || form.age <= 0) {
+            newErrors.age = "Valid age is required";
+        } else if (form.age < 18 || form.age > 100) {
+            newErrors.age = "Age must be between 18 and 100";
+        }
+
+        if (form.phone) {
+            const digitsOnly = form.phone.replace(/\D/g, "");
+            if (digitsOnly.length !== 10) {
+                newErrors.phone = "Phone number must be exactly 10 digits";
+            }
+        }
+
+        const dateError = validateDate(form.hireDate);
+        if (dateError) newErrors.hireDate = dateError;
+
+        if (
+            form.performance !== undefined &&
+            form.performance !== null &&
+            form.performance !== 0 &&
+            (form.performance < 0 || form.performance > 100)
+        ) {
+            newErrors.performance = "Performance must be between 0 and 100";
         }
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = async (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent | MouseEvent) => {
         e.preventDefault();
         if (!validate()) return;
 
@@ -118,14 +177,25 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                 body: JSON.stringify(form),
             });
 
-            if (response.ok) {
-                onAdded?.();
-                onClose();
-            } else {
-                console.error("Failed to save employee");
+            if (!response.ok) {
+                let message = "Failed to save employee";
+                try {
+                    const data = await response.json();
+                    if (data?.message) message = data.message;
+                } catch {
+                    const text = await response.text();
+                    if (text) message = text;
+                }
+                console.error(message);
+                alert(message);
+                return;
             }
+
+            onAdded?.();
+            onClose();
         } catch (error) {
             console.error("Failed to save employee:", error);
+            alert("Something went wrong while saving the employee. Please try again.");
         } finally {
             setLoadingSubmit(false);
         }
@@ -165,7 +235,7 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                     <Stack spacing={3}>
                         <TextField
                             size="small"
-                            label="Full Name *"
+                            label="Full Name "
                             fullWidth
                             required
                             value={form.name}
@@ -177,25 +247,25 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                             }}
                         />
 
-                        <TextField
-                            select
-                            size="small"
-                            label="Department *"
-                            required
-                            value={form.department}
-                            onChange={(e) => handleChange("department", e.target.value)}
-                            fullWidth
-                            error={!!errors.department}
-                            helperText={errors.department}
-                            disabled={loadingDepartments}
-                        >
-                            <MenuItem value="">Select Department</MenuItem>
-                            {departments.map((dep) => (
-                                <MenuItem key={dep} value={dep}>
-                                    {dep}
-                                </MenuItem>
-                            ))}
-                        </TextField>
+                        {/* Department Autocomplete */}
+                        <Autocomplete
+                            freeSolo
+                            options={departments}
+                            loading={loadingDepartments}
+                            value={form.department || ""}
+                            onChange={(_, value) => handleChange("department", value || "")}
+                            onInputChange={(_, value) => handleChange("department", value || "")}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    size="small"
+                                    label="Department "
+                                    required
+                                    error={!!errors.department}
+                                    helperText={errors.department || "Type to search or add a department"}
+                                />
+                            )}
+                        />
 
                         <Stack direction="row" spacing={2}>
                             <TextField
@@ -207,7 +277,7 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                             />
                             <TextField
                                 size="small"
-                                label="Email *"
+                                label="Email "
                                 type="email"
                                 required
                                 fullWidth
@@ -215,6 +285,9 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                                 onChange={(e) => handleChange("email", e.target.value)}
                                 error={!!errors.email}
                                 helperText={errors.email}
+                                inputProps={{
+                                    inputMode: "email",
+                                }}
                             />
                         </Stack>
 
@@ -224,7 +297,13 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                                 label="Phone"
                                 fullWidth
                                 value={form.phone}
-                                onChange={(e) => handleChange("phone", e.target.value)}
+                                onChange={(e) => {
+                                    const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+                                    handleChange("phone", digitsOnly);
+                                }}
+                                error={!!errors.phone}
+                                helperText={errors.phone || "10-digit phone number"}
+                                inputProps={{ maxLength: 10, inputMode: "numeric" }}
                             />
                             <TextField
                                 size="small"
@@ -240,7 +319,7 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                         <Stack direction="row" spacing={2}>
                             <TextField
                                 size="small"
-                                label="Salary *"
+                                label="Salary "
                                 type="number"
                                 required
                                 fullWidth
@@ -254,7 +333,7 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                             />
                             <TextField
                                 size="small"
-                                label="Age *"
+                                label="Age "
                                 type="number"
                                 required
                                 fullWidth
@@ -276,8 +355,10 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                                 value={form.hireDate}
                                 onChange={(e) => handleChange("hireDate", e.target.value)}
                                 InputProps={{
-                                    inputProps: { max: new Date().toISOString().split('T')[0] }
+                                    inputProps: { max: new Date().toISOString().split("T")[0] },
                                 }}
+                                error={!!errors.hireDate}
+                                helperText={errors.hireDate}
                             />
                             <TextField
                                 size="small"
@@ -287,7 +368,7 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                                 value={form.performance || ""}
                                 onChange={(e) => handleChange("performance", Number(e.target.value) || 0)}
                                 error={!!errors.performance}
-                                helperText={errors.performance || "0-100"}
+                                helperText={errors.performance || "0–100"}
                                 inputProps={{ min: 0, max: 100, step: 0.1 }}
                             />
                         </Stack>
