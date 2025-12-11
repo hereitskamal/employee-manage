@@ -1,25 +1,31 @@
+// components/products/ProductFilters.tsx
 "use client";
 
 import { Add } from "@mui/icons-material";
 import { Stack, TextField, MenuItem, Button } from "@mui/material";
+import { useSession } from "next-auth/react";
 
-interface EmployeeFiltersProps {
+interface ProductFiltersProps {
     searchText: string;
     setSearchText: (value: string) => void;
-    departmentFilter: string;
-    setDepartmentFilter: (value: string) => void;
+    categoryFilter: string;
+    setCategoryFilter: (value: string) => void;
+    categories: string[];
     onAddClick?: () => void;
-    departments: string[];
 }
 
-export default function EmployeeFilters({
+export default function ProductFilters({
     searchText,
     setSearchText,
-    departmentFilter,
-    setDepartmentFilter,
+    categoryFilter,
+    setCategoryFilter,
+    categories,
     onAddClick,
-    departments,
-}: EmployeeFiltersProps) {
+}: ProductFiltersProps) {
+    const { data: session } = useSession();
+    const isPrivileged =
+        session?.user?.role === "admin" || session?.user?.role === "manager";
+
     return (
         <Stack
             direction={{ xs: "column", sm: "row" }}
@@ -33,14 +39,14 @@ export default function EmployeeFilters({
             }}
         >
             <TextField
-                label="Search"
+                label="Search products"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 size="small"
                 fullWidth
                 variant="outlined"
                 sx={{
-                    maxWidth: { xs: "100%", sm: 300 },
+                    maxWidth: { xs: "100%", sm: 320 },
                     "& .MuiOutlinedInput-root": {
                         "& fieldset": { border: "2px solid #d0d0d0ff" },
                         "& input": { outline: "none" },
@@ -50,13 +56,13 @@ export default function EmployeeFilters({
 
             <TextField
                 select
-                label="Department"
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
+                label="Category"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
                 size="small"
                 fullWidth
                 sx={{
-                    maxWidth: { xs: "100%", sm: 200 },
+                    maxWidth: { xs: "100%", sm: 220 },
                     "& .MuiOutlinedInput-root": {
                         "& fieldset": { border: "2px solid #d0d0d0ff" },
                         "& input": { outline: "none" },
@@ -64,21 +70,23 @@ export default function EmployeeFilters({
                 }}
             >
                 <MenuItem value="">All</MenuItem>
-                {departments.map((dep) => (
-                    <MenuItem key={dep} value={dep}>
-                        {dep}
+                {categories.map((cat) => (
+                    <MenuItem key={cat} value={cat}>
+                        {cat}
                     </MenuItem>
                 ))}
             </TextField>
 
-            <Button
-                startIcon={<Add />}
-                variant="contained"
-                onClick={onAddClick}
-                sx={{ whiteSpace: "nowrap", height: 40, borderRadius: 10 }}
-            >
-                Add Employee
-            </Button>
+            {isPrivileged && (
+                <Button
+                    startIcon={<Add />}
+                    variant="contained"
+                    onClick={onAddClick}
+                    sx={{ whiteSpace: "nowrap", height: 40, borderRadius: 10 }}
+                >
+                    Add Product
+                </Button>
+            )}
         </Stack>
     );
 }

@@ -1,44 +1,80 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import {
     DataGrid,
     GridToolbar,
     GridColDef,
+    GridRowSelectionModel,
 } from "@mui/x-data-grid";
-import EmployeeDrawer from "../EmployeeDrawer";
 import { EmployeeRow } from "@/types/employee";
-
-
+import EmployeeDrawer from "@/components/employees/EmployeeDrawer";
 
 interface EmployeeTableProps {
     rows: EmployeeRow[];
     fetchEmployees: () => void;
+    loading: boolean;
+
+    // ✅ v8-style selection model
+    rowSelectionModel: GridRowSelectionModel;
+    onSelectionChange: (model: GridRowSelectionModel) => void;
 }
 
-export default function EmployeeTable({ rows, fetchEmployees }: EmployeeTableProps) {
-     const [selectedId, setSelectedId] = useState<number | null>(null);
+export default function EmployeeTable({
+    rows,
+    fetchEmployees,
+    loading,
+    rowSelectionModel,
+    onSelectionChange,
+}: EmployeeTableProps) {
+    const [selectedId, setSelectedId] = useState<string | null>(null);
 
     const columns: GridColDef[] = [
         { field: "name", headerName: "Name", minWidth: 150, flex: 1 },
-        { field: "department", headerName: "Department", minWidth: 150, flex: 1 },
+        { field: "department", headerName: "Department", minWidth: 120, flex: 1 },
         { field: "title", headerName: "Job Title", minWidth: 150, flex: 1 },
         { field: "email", headerName: "Email", minWidth: 220, flex: 1 },
-        { field: "phone", headerName: "Phone", minWidth: 130, flex: 1 },
+        { field: "phone", headerName: "Phone", minWidth: 120, flex: 1 },
         { field: "location", headerName: "Location", minWidth: 120, flex: 1 },
-        { field: "salary", headerName: "Salary", type: "number", minWidth: 100, flex: 1 },
-        { field: "age", headerName: "Age", type: "number", minWidth: 80, flex: 1 },
-        { field: "hireDate", headerName: "Hire Date", minWidth: 120, flex: 1 },
-        { field: "performance", headerName: "Performance", type: "number", minWidth: 100, flex: 1 },
+        {
+            field: "salary",
+            headerName: "Salary",
+            type: "number",
+            minWidth: 100,
+            flex: 1,
+        },
+        {
+            field: "age",
+            headerName: "Age",
+            type: "number",
+            minWidth: 80,
+            flex: 1,
+        },
+        {
+            field: "hireDate",
+            headerName: "Hire Date",
+            minWidth: 140,
+            flex: 1,
+            valueFormatter: (params) => {
+                const date = new Date(params);
+                return date.toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                });
+            },
+        },
+        {
+            field: "performance",
+            headerName: "Performance",
+            type: "number",
+            minWidth: 120,
+            flex: 1,
+        },
     ];
 
-    const onRowClick = (params: any) => {
-        setSelectedId(params.row.id);
-    };
-
-    const handleDrawerClose = () => {
-        setSelectedId(null);
+    const handleRowDoubleClick = (params: any) => {
+        setSelectedId(params.row._id?.toString() ?? null);
     };
 
     return (
@@ -46,6 +82,7 @@ export default function EmployeeTable({ rows, fetchEmployees }: EmployeeTablePro
             <DataGrid
                 rows={rows}
                 columns={columns}
+                getRowId={(row) => row._id}
                 pagination
                 pageSizeOptions={[8]}
                 initialState={{
@@ -53,22 +90,22 @@ export default function EmployeeTable({ rows, fetchEmployees }: EmployeeTablePro
                         paginationModel: { pageSize: 8, page: 0 },
                     },
                 }}
-                onRowClick={onRowClick}
+                loading={loading}
+                checkboxSelection
+                disableRowSelectionOnClick
+                disableRowSelectionExcludeModel
+                rowSelectionModel={rowSelectionModel}
+                onRowSelectionModelChange={(newModel) => onSelectionChange(newModel)}
+                onRowDoubleClick={handleRowDoubleClick}
                 slots={{ toolbar: GridToolbar }}
                 sx={{
-                    height: "calc(100vh - 205px)",
-                    border: 0,
-                    "& .MuiDataGrid-columnHeaders": {
-                        backgroundColor: "#eff2f7",
-                        fontWeight: "bold",
-                    },
-                    "& .MuiDataGrid-row:not(.Mui-selected):not(.MuiDataGrid-row--editing):hover": {
-                        backgroundColor: "#f5f5f5",
-                        cursor: "pointer",
-                    },
+                    backgroundColor: "white",
+                    border: "none",
+                    borderRadius: 3,
+                    p: 2,
                 }}
-
             />
+
             <EmployeeDrawer
                 id={selectedId}
                 onClose={() => setSelectedId(null)}
