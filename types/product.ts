@@ -1,19 +1,31 @@
-// types/product.ts
+// /types/product.ts
 export interface ProductRow {
-    _id: string;
-    name: string;
-    category: string;
-    brand: string;
-    modelNo: string;
-    modelYear?: number;
-    image?: string;
-    purchaseRate?: number;
-    distributorRate?: number;
-    minSaleRate: number;
-    tagRate?: number;
-    starRating?: number;
-    criticalSellScore?: number;
-    stock: number;
-    createdAt?: string;
-    updatedAt?: string;
+  _id?: string;
+  id?: string;
+
+  // core
+  name: string;
+  brand?: string;
+  category?: string;
+  modelNo?: string;
+  modelYear?: number;
+  image?: string;
+  description?: string;
+
+  // pricing & rates
+  purchaseRate?: number;
+  distributorRate?: number;
+  minSaleRate?: number;
+  tagRate?: number;
+
+  // inventory / metrics
+  stock?: number;
+  starRating?: number;
+  criticalSellScore?: number;
+
+  // meta
+  createdBy?: { _id?: string; name?: string; email?: string } | string;
+  updatedBy?: string;
+
+  [key: string]: any;
 }

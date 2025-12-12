@@ -51,7 +51,7 @@ const transporter = nodemailer.createTransport({
 export async function POST(req: Request) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session || session.user.role !== "admin") {
+        if (!session || session.user?.role !== "admin") {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
             return NextResponse.json({
                 message: "Employees deleted successfully",
-                deletedCount: result.deletedCount,
+                deletedCount: result.deletedCount ?? 0,
             });
         }
 
@@ -90,15 +90,13 @@ export async function POST(req: Request) {
                 return NextResponse.json({ message: "Target role not provided" }, { status: 400 });
             }
 
-            // Prevent promoting to admin via this endpoint
-            // if (role === "admin") {
-            //     return NextResponse.json({ message: "Cannot assign admin role via bulk action" }, { status: 403 });
-            // }
-
             const result = await User.updateMany(
                 { _id: { $in: validIds }, role: { $ne: "admin" } }, // do not change admin accounts
                 { $set: { role } }
             );
+
+            // Safely read modified count (supports both modern and older result shapes)
+            const modifiedCount = (result as any).modifiedCount ?? (result as any).nModified ?? 0;
 
             // Optionally send notification emails to changed users
             if (sendEmail) {
@@ -128,7 +126,7 @@ export async function POST(req: Request) {
 
             return NextResponse.json({
                 message: "Roles changed successfully",
-                modifiedCount: result.modifiedCount ?? result.nModified ?? 0,
+                modifiedCount,
             });
         }
 

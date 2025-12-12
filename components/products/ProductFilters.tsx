@@ -9,7 +9,10 @@ interface ProductFiltersProps {
     searchText: string;
     setSearchText: (value: string) => void;
     categoryFilter: string;
+    brandFilter?: string;
     setCategoryFilter: (value: string) => void;
+    setBrandFilter?: (value: string) => void;
+    brands?: string[];
     categories: string[];
     onAddClick?: () => void;
 }

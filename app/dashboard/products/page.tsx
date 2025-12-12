@@ -74,6 +74,9 @@ export default function ProductsPage() {
         }
     };
 
+    const toStringArray = (arr: (string | undefined)[]) =>
+        arr.filter((v): v is string => typeof v === "string" && v !== "");
+
     return (
         <Box>
             <ProductFilters
@@ -83,8 +86,8 @@ export default function ProductsPage() {
                 setCategoryFilter={setCategoryFilter}
                 brandFilter={brandFilter}
                 setBrandFilter={setBrandFilter}
-                categories={categories}
-                brands={brands}
+                categories={toStringArray(categories)}
+                brands={toStringArray(brands)}
                 onAddClick={() => setModalOpen(true)}
             />
 

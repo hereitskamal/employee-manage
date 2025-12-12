@@ -51,8 +51,8 @@ export function useProducts() {
             const matchesText =
                 !text ||
                 p.name.toLowerCase().includes(text) ||
-                p.brand.toLowerCase().includes(text) ||
-                p.modelNo.toLowerCase().includes(text);
+                (p.brand ?? "").toLowerCase().includes(text) ||
+                (p.modelNo ?? "").toLowerCase().includes(text);
 
             const matchesCategory =
                 !categoryFilter || p.category === categoryFilter;

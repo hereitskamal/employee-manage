@@ -32,7 +32,7 @@ export default function EmployeeDrawer({
   onClose,
   onDeleteSuccess,
 }: EmployeeDrawerProps) {
-  const { employee, loading } = useEmployee(id);
+  const { employee, loading } = useEmployee(id ? Number(id) : null);
 
   const formatDate = (value?: string | Date) => {
     if (!value) return "-";
