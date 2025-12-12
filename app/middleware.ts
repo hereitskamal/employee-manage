@@ -64,7 +64,7 @@ export async function middleware(req: NextRequest) {
   if (token) {
     const role = (token as any).role;
 
-    const isEmployee = role === "employee" || role === "helper";
+    const isEmployee = role === "employee" || role === "spc";
     const isDashboard = pathname.startsWith("/dashboard");
     const isProducts = pathname.startsWith("/dashboard/products");
 
