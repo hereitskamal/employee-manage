@@ -7,6 +7,7 @@ import {
     GridToolbar,
     GridColDef,
     GridRowSelectionModel,
+    GridRowParams,
 } from "@mui/x-data-grid";
 import { ProductRow } from "@/types/product";
 import { useSession } from "next-auth/react";
@@ -112,7 +113,7 @@ export default function ProductTable({
         ? [...baseColumns, ...costColumns]
         : baseColumns;
 
-    const onRowClick = (params: any) => {
+    const onRowClick = (params: GridRowParams<ProductRow & { _id?: string }>) => {
         setSelectedId(params.row._id);
         // Later you can open a ProductDrawer/Edit dialog here
     };

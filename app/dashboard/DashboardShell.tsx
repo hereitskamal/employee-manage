@@ -10,7 +10,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <Sidebar />
       <Box sx={{ height: "100vh", flex: 1, width: "calc(100vw - 228px)" }}>
         {/* <Header /> */}
-        <Box sx={{ p: 2 }}>{children}</Box>
+        <Box sx={{ p: 2, height: "100%", overflowY: "auto" }}>{children}</Box>
       </Box>
     </Box>
   );

@@ -27,6 +27,7 @@ import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import StarRateIcon from "@mui/icons-material/StarRate";
 import DescriptionIcon from "@mui/icons-material/Description";
 import type { ProductRow } from "@/types/product";
+import { getId } from "@/types/nextjs";
 
 interface ProductDrawerProps {
   id: string | null;
@@ -100,7 +101,7 @@ export default function ProductDrawer({
   // Delete flow (with confirmation dialog)
   const handleDelete = async () => {
     if (!product) return;
-    const productId = (product as any)._id ?? (product as any).id;
+    const productId = getId(product);
     if (!productId) return;
 
     setDeleting(true);
@@ -333,7 +334,7 @@ export default function ProductDrawer({
                 variant="outlined"
                 startIcon={<EditIcon />}
                 onClick={() => {
-                  const productId = (product as any)._id ?? (product as any).id;
+                  const productId = getId(product);
                   if (productId) window.location.href = `/dashboard/products/edit/${productId}`;
                 }}
                 sx={{ textTransform: "none", borderRadius: 2 }}

@@ -52,7 +52,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           isProfileComplete: user.isProfileComplete ?? false,
           mustSetPassword: user.mustSetPassword ?? false,
-        } as any;
+        };
       },
     }),
 
@@ -92,10 +92,50 @@ export const authOptions: NextAuthOptions = {
           });
         }
 
-        (user as any).id = existing._id.toString();
-        (user as any).role = existing.role;
-        (user as any).isProfileComplete = existing.isProfileComplete ?? false;
-        (user as any).mustSetPassword = existing.mustSetPassword ?? false;
+        // Extend user object with our custom fields
+        Object.assign(user, {
+          id: existing._id.toString(),
+          role: existing.role,
+          isProfileComplete: existing.isProfileComplete ?? false,
+          mustSetPassword: existing.mustSetPassword ?? false,
+        });
+      }
+
+      // Track login time for attendance
+      if (user.id) {
+        try {
+          const { Attendance } = await import("@/models/Attendance");
+          const mongoose = await import("mongoose");
+          
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const todayEnd = new Date(today);
+          todayEnd.setHours(23, 59, 59, 999);
+
+          // Check if attendance record exists for today
+          const existingAttendance = await Attendance.findOne({
+            userId: new mongoose.default.Types.ObjectId(user.id),
+            date: { $gte: today, $lte: todayEnd },
+          });
+
+          if (!existingAttendance) {
+            // Create new attendance record
+            await Attendance.create({
+              userId: new mongoose.default.Types.ObjectId(user.id),
+              loginTime: new Date(),
+              date: today,
+              status: "present",
+            });
+          } else if (!existingAttendance.loginTime) {
+            // Update existing record with login time
+            existingAttendance.loginTime = new Date();
+            existingAttendance.status = "present";
+            await existingAttendance.save();
+          }
+        } catch (error) {
+          // Don't block login if attendance tracking fails
+          console.error("Failed to track login attendance:", error);
+        }
       }
 
       return true;
@@ -104,12 +144,11 @@ export const authOptions: NextAuthOptions = {
     // put flags on the token at sign-in
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id ?? token.id;
-        token.role = (user as any).role ?? token.role;
-        token.isProfileComplete =
-          (user as any).isProfileComplete ?? token.isProfileComplete ?? false;
-        token.mustSetPassword =
-          (user as any).mustSetPassword ?? token.mustSetPassword ?? false;
+        const extendedUser = user as { id?: string; role?: string; isProfileComplete?: boolean; mustSetPassword?: boolean };
+        token.id = extendedUser.id ?? token.id;
+        token.role = extendedUser.role as "admin" | "manager" | "employee" | "spc" | undefined ?? token.role;
+        token.isProfileComplete = extendedUser.isProfileComplete ?? token.isProfileComplete ?? false;
+        token.mustSetPassword = extendedUser.mustSetPassword ?? token.mustSetPassword ?? false;
       }
 
       return token;
@@ -125,20 +164,16 @@ export const authOptions: NextAuthOptions = {
       });
 
       if (dbUser) {
-        (session.user as any).id = dbUser._id.toString();
-        (session.user as any).role = dbUser.role;
-        (session.user as any).isProfileComplete =
-          dbUser.isProfileComplete ?? false;
-        (session.user as any).mustSetPassword =
-          dbUser.mustSetPassword ?? false;
+        session.user.id = dbUser._id.toString();
+        session.user.role = dbUser.role;
+        session.user.isProfileComplete = dbUser.isProfileComplete ?? false;
+        session.user.mustSetPassword = dbUser.mustSetPassword ?? false;
       } else {
         // fallback to token if DB user missing
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
-        (session.user as any).isProfileComplete =
-          (token as any).isProfileComplete ?? false;
-        (session.user as any).mustSetPassword =
-          (token as any).mustSetPassword ?? false;
+        if (token.id) session.user.id = token.id;
+        if (token.role) session.user.role = token.role;
+        session.user.isProfileComplete = token.isProfileComplete ?? false;
+        session.user.mustSetPassword = token.mustSetPassword ?? false;
       }
 
       return session;

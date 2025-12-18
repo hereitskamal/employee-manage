@@ -9,16 +9,16 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  const role = (session.user as any).role;
+  const role = session.user.role;
 
   if (role === "admin") {
-    redirect("/admin/dashboard");
+    redirect("/dashboard/admin");
   } else if (role === "manager") {
-    redirect("/manager/dashboard");
+    redirect("/dashboard/manager");
   } else if (role === "spc") {
-    redirect("/spc/dashboard");
+    redirect("/dashboard/spc");
   } else if (role === "employee") {
-    redirect("/employee/dashboard");
+    redirect("/dashboard/employee");
   } else {
     redirect("/login");
   }

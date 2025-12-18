@@ -20,6 +20,7 @@ import RoomIcon from "@mui/icons-material/Room";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import useEmployee from "@/hooks/useEmployee";
+import { getId } from "@/types/nextjs";
 
 interface EmployeeDrawerProps {
   id: string | null;
@@ -58,7 +59,8 @@ export default function EmployeeDrawer({
     if (!employee) return;
     if (!confirm("Are you sure you want to delete this employee?")) return;
 
-    const employeeId = (employee as any)._id ?? (employee as any).id;
+    const employeeId = getId(employee);
+    if (!employeeId) return;
 
     try {
       const res = await fetch(`/api/employees/${employeeId}`, {

@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { Product } from "@/models/Product";
+import mongoose from "mongoose";
 
 /**
  * =========================================================
@@ -44,8 +45,9 @@ export async function GET() {
          */
         if (!isPrivileged) {
             for (const p of products) {
-                delete (p as any).purchaseRate;
-                delete (p as any).distributorRate;
+                const product = p as Record<string, unknown>;
+                delete product.purchaseRate;
+                delete product.distributorRate;
             }
         }
 
@@ -152,7 +154,7 @@ export async function POST(req: Request) {
             starRating: starRating != null ? Number(starRating) : undefined,
             criticalSellScore: criticalSellScore != null ? Number(criticalSellScore) : undefined,
             stock: Number(stock),
-            createdBy: (session.user as any).id,
+            createdBy: session.user.id ? new mongoose.Types.ObjectId(session.user.id) : undefined,
         });
 
         return NextResponse.json(

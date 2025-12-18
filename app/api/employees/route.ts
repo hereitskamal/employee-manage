@@ -7,6 +7,7 @@ import { User } from "@/models/User";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { hash } from "bcryptjs";
+import mongoose from "mongoose";
 
 /**
  * ---------------------------------------------------------
@@ -176,7 +177,7 @@ export async function POST(req: Request) {
             age,
             performance,
             password: hashedPassword,
-            createdBy: session?.user?.id,
+            createdBy: session?.user?.id ? new mongoose.Types.ObjectId(session.user.id) : undefined,
             mustSetPassword: false,
             isProfileComplete: false,
         });

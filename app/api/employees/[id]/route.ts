@@ -5,22 +5,7 @@ import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { User } from "@/models/User";
 import mongoose from "mongoose";
-
-/**
- * Utility to normalize params because in some Next.js build contexts
- * `context.params` can be a Promise<{ id: string }> instead of { id: string }.
- */
-async function resolveParams(context: any): Promise<{ id: string }> {
-  if (!context) return { id: "" };
-  if (context.params) {
-    // If params is a Promise
-    if (typeof context.params.then === "function") {
-      return await context.params;
-    }
-    return context.params;
-  }
-  return { id: "" };
-}
+import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
 
 /**
  * =========================================================
@@ -28,7 +13,7 @@ async function resolveParams(context: any): Promise<{ id: string }> {
  * Fetch a single employee by ID (Admin or authenticated user)
  * =========================================================
  */
-export async function GET(req: NextRequest, context: any) {
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -37,7 +22,8 @@ export async function GET(req: NextRequest, context: any) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await resolveParams(context);
+    const params = await resolveRouteParams(context);
+    const id = params.id || "";
 
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -76,7 +62,7 @@ export async function GET(req: NextRequest, context: any) {
  * Update employee details
  * =========================================================
  */
-export async function PUT(req: NextRequest, context: any) {
+export async function PUT(req: NextRequest, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -85,7 +71,8 @@ export async function PUT(req: NextRequest, context: any) {
     //     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     // }
 
-    const { id } = await resolveParams(context);
+    const params = await resolveRouteParams(context);
+    const id = params.id || "";
 
     // Validate ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -191,7 +178,7 @@ export async function PUT(req: NextRequest, context: any) {
  * Delete an employee (admin only)
  * =========================================================
  */
-export async function DELETE(req: NextRequest, context: any) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -199,7 +186,8 @@ export async function DELETE(req: NextRequest, context: any) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await resolveParams(context);
+    const params = await resolveRouteParams(context);
+    const id = params.id || "";
 
     // Validate ID
     if (!mongoose.Types.ObjectId.isValid(id)) {

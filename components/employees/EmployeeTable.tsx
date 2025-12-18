@@ -6,6 +6,7 @@ import {
     GridToolbar,
     GridColDef,
     GridRowSelectionModel,
+    GridRowParams,
 } from "@mui/x-data-grid";
 import { EmployeeRow } from "@/types/employee";
 import EmployeeDrawer from "@/components/employees/EmployeeDrawer";
@@ -73,7 +74,7 @@ export default function EmployeeTable({
         },
     ];
 
-    const handleRowDoubleClick = (params: any) => {
+    const handleRowDoubleClick = (params: GridRowParams<EmployeeRow & { _id?: string }>) => {
         setSelectedId(params.row._id?.toString() ?? null);
     };
 

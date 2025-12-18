@@ -5,31 +5,21 @@ import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
-
-/** Normalize params: context.params can be { id } or Promise<{ id }> in some Next builds */
-async function resolveParams(context: any): Promise<{ id: string }> {
-  if (!context) return { id: "" };
-  if (context.params) {
-    if (typeof context.params.then === "function") {
-      return await context.params;
-    }
-    return context.params;
-  }
-  return { id: "" };
-}
+import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
 
 /**
  * GET /api/products/:id
  * Fetch a single product by ID
  */
-export async function GET(req: NextRequest, context: any) {
+export async function GET(req: NextRequest, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await resolveParams(context);
+    const params = await resolveRouteParams(context);
+    const id = params.id || "";
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: "Invalid product ID" }, { status: 400 });
@@ -48,10 +38,11 @@ export async function GET(req: NextRequest, context: any) {
       return NextResponse.json({ message: "Product not found" }, { status: 404 });
     }
 
-    if (!isPrivileged) {
+    if (!isPrivileged && productDoc) {
       // remove sensitive fields for non privileged users
-      delete (productDoc as any).purchaseRate;
-      delete (productDoc as any).distributorRate;
+      const restrictedDoc = productDoc as Record<string, unknown>;
+      delete restrictedDoc.purchaseRate;
+      delete restrictedDoc.distributorRate;
     }
 
     return NextResponse.json(productDoc);
@@ -65,7 +56,7 @@ export async function GET(req: NextRequest, context: any) {
  * PUT /api/products/:id
  * Update product (admin & manager only)
  */
-export async function PUT(req: NextRequest, context: any) {
+export async function PUT(req: NextRequest, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -73,7 +64,8 @@ export async function PUT(req: NextRequest, context: any) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await resolveParams(context);
+    const params = await resolveRouteParams(context);
+    const id = params.id || "";
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: "Invalid product ID" }, { status: 400 });
@@ -117,7 +109,7 @@ export async function PUT(req: NextRequest, context: any) {
     if (criticalSellScore != null) product.criticalSellScore = Number(criticalSellScore);
     if (stock != null) product.stock = Number(stock);
 
-    product.updatedBy = (session.user as any)?.id;
+    product.updatedBy = session.user.id ? new mongoose.Types.ObjectId(session.user.id) : undefined;
 
     await product.save();
 
@@ -132,7 +124,7 @@ export async function PUT(req: NextRequest, context: any) {
  * DELETE /api/products/:id
  * Delete product (admin & manager only)
  */
-export async function DELETE(req: NextRequest, context: any) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -140,7 +132,8 @@ export async function DELETE(req: NextRequest, context: any) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await resolveParams(context);
+    const params = await resolveRouteParams(context);
+    const id = params.id || "";
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json({ message: "Invalid product ID" }, { status: 400 });

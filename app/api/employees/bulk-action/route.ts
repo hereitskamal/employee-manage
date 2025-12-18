@@ -96,7 +96,7 @@ export async function POST(req: Request) {
             );
 
             // Safely read modified count (supports both modern and older result shapes)
-            const modifiedCount = (result as any).modifiedCount ?? (result as any).nModified ?? 0;
+            const modifiedCount = result.modifiedCount ?? (result as { nModified?: number }).nModified ?? 0;
 
             // Optionally send notification emails to changed users
             if (sendEmail) {
@@ -169,9 +169,10 @@ export async function POST(req: Request) {
                     }
 
                     results.push({ id: u._id.toString(), email: u.email, mailed: true });
-                } catch (err: any) {
+                } catch (err) {
+                    const errorMessage = err instanceof Error ? err.message : String(err);
                     console.error(`Welcome email failed for ${u.email}:`, err);
-                    results.push({ id: u._id.toString(), email: u.email, mailed: false, error: String(err) });
+                    results.push({ id: u._id.toString(), email: u.email, mailed: false, error: errorMessage });
                 }
             }
 

@@ -59,8 +59,16 @@ export default function SalaryChart() {
     }, [employees]);
 
     // Truncated X-axis Tick
-    const EllipsisTick: React.FC<any> = ({ x, y, payload }) => {
-        const text = payload.value;
+    interface TickProps {
+        x?: number;
+        y?: number;
+        payload?: {
+            value: string;
+        };
+    }
+
+    const EllipsisTick: React.FC<TickProps> = ({ x = 0, y = 0, payload }) => {
+        const text = payload?.value || "";
         const maxLen = 10;
         const truncated = text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
 

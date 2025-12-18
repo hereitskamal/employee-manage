@@ -27,5 +27,6 @@ export interface ProductRow {
   createdBy?: { _id?: string; name?: string; email?: string } | string;
   updatedBy?: string;
 
-  [key: string]: any;
+  // Allow additional properties for flexibility (e.g., from MongoDB populate)
+  [key: string]: unknown;
 }

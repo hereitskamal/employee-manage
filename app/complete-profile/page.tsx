@@ -21,7 +21,7 @@ export default function CompleteProfilePage() {
   const router = useRouter();
 
   // Flags from session token
-  const userFlags = (session?.user as any) ?? undefined;
+  const userFlags = session?.user;
   const mustSetPassword = userFlags?.mustSetPassword ?? false;
 
   // Form fields

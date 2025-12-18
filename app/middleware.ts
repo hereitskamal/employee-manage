@@ -57,22 +57,98 @@ export async function middleware(req: NextRequest) {
 
   /**
    * ---------------------------------------------------------
-   * 3. ROLE-BASED ACCESS CONTROL FOR EMPLOYEES
-   *    Employees can access ONLY: /dashboard/products
+   * 3. ROLE-BASED ACCESS CONTROL
+   *    Employees can access: /dashboard/products, /dashboard/sales, /dashboard/attendance, /dashboard/employee
+   *    SPC can access: /dashboard/products, /dashboard/sales, /dashboard/attendance, /dashboard/spc
+   *    Managers can access: most dashboard routes except admin-only
+   *    Admins can access: all routes
    * ---------------------------------------------------------
    */
   if (token) {
-    const role = (token as any).role;
+    const role = token.role;
 
-    const isEmployee = role === "employee" || role === "spc";
+    const isEmployee = role === "employee";
+    const isSPC = role === "spc";
+    const isManager = role === "manager";
+    const isAdmin = role === "admin";
+    const isHelper = role === "helper";
     const isDashboard = pathname.startsWith("/dashboard");
-    const isProducts = pathname.startsWith("/dashboard/products");
 
-    // Redirect employees trying to access forbidden dashboard routes
-    if (isEmployee && isDashboard && !isProducts) {
-      const url = req.nextUrl.clone();
-      url.pathname = "/dashboard/products";
-      return NextResponse.redirect(url);
+    if (isDashboard) {
+      // Admin-only routes
+      const isAdminOnly = pathname.startsWith("/dashboard/admin") || 
+                         pathname.startsWith("/dashboard/attendance/daily-logs") ||
+                         pathname.startsWith("/dashboard/employees");
+      
+      // Manager/Admin-only routes (restricted from employees and SPC)
+      const isManagerOnlyRoute = pathname.startsWith("/dashboard/sales/analysis");
+      
+      // Manager allowed routes
+      const isManagerAllowed = pathname.startsWith("/dashboard/manager") ||
+                               pathname.startsWith("/dashboard/products") ||
+                               pathname.startsWith("/dashboard/sales") ||
+                               pathname.startsWith("/dashboard/attendance") ||
+                               pathname === "/dashboard";
+
+      // Employee allowed routes (exclude sales/analysis)
+      const isEmployeeAllowed = pathname.startsWith("/dashboard/products") ||
+                                (pathname.startsWith("/dashboard/sales") && !pathname.startsWith("/dashboard/sales/analysis")) ||
+                                pathname.startsWith("/dashboard/attendance") ||
+                                pathname.startsWith("/dashboard/employee") ||
+                                pathname === "/dashboard";
+
+      // Helper allowed routes (same as employee)
+      const isHelperAllowed = pathname.startsWith("/dashboard/products") ||
+                             (pathname.startsWith("/dashboard/sales") && !pathname.startsWith("/dashboard/sales/analysis")) ||
+                             pathname.startsWith("/dashboard/attendance") ||
+                             pathname.startsWith("/dashboard/employee") ||
+                             pathname === "/dashboard";
+
+      // SPC allowed routes (exclude sales/analysis)
+      const isSPCAllowed = pathname.startsWith("/dashboard/products") ||
+                           (pathname.startsWith("/dashboard/sales") && !pathname.startsWith("/dashboard/sales/analysis")) ||
+                           pathname.startsWith("/dashboard/attendance") ||
+                           pathname.startsWith("/dashboard/spc") ||
+                           pathname === "/dashboard";
+
+      // Redirect based on role
+      if (isEmployee && !isEmployeeAllowed) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard/employee";
+        return NextResponse.redirect(url);
+      }
+
+      if (isHelper && !isHelperAllowed) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard/employee";
+        return NextResponse.redirect(url);
+      }
+
+      if (isSPC && !isSPCAllowed) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard/spc";
+        return NextResponse.redirect(url);
+      }
+
+      // Managers cannot access admin-only routes or manager-only routes they shouldn't access
+      if (isManager && (isAdminOnly || pathname.startsWith("/dashboard/admin"))) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard/manager";
+        return NextResponse.redirect(url);
+      }
+
+      // Employees, helpers, and SPC cannot access manager-only routes
+      if ((isEmployee || isHelper || isSPC) && isManagerOnlyRoute) {
+        const url = req.nextUrl.clone();
+        url.pathname = isEmployee || isHelper ? "/dashboard/employee" : "/dashboard/spc";
+        return NextResponse.redirect(url);
+      }
+
+      if (!isAdmin && isAdminOnly) {
+        const url = req.nextUrl.clone();
+        url.pathname = "/dashboard";
+        return NextResponse.redirect(url);
+      }
     }
   }
 
