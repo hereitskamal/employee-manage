@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Grid, Card, CardContent, Typography, Button } from "@mui/material";
+import { Box, Card, CardContent, Typography, Button, Grid } from "@mui/material";
 import { useSales } from "@/hooks/useSales";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useSession } from "next-auth/react";
@@ -111,7 +111,7 @@ export default function EmployeeDashboard() {
 
             {/* Overview Cards */}
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -126,7 +126,7 @@ export default function EmployeeDashboard() {
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -141,7 +141,7 @@ export default function EmployeeDashboard() {
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -190,7 +190,7 @@ export default function EmployeeDashboard() {
                     </Typography>
                     <Grid container spacing={2}>
                         {recentAttendance.map((record) => (
-                            <Grid item xs={12} sm={6} md={4} key={record._id || record.id}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={record._id || record.id}>
                                 <UserAttendanceCard attendance={record} />
                             </Grid>
                         ))}

@@ -34,8 +34,8 @@ export default function ClockInOutButton({
     const [error, setError] = useState<string | null>(null);
 
     // Determine current state: not clocked in, clocked in (can clock out), or clocked out
-    const isClockedIn = todayAttendance?.loginTime && !todayAttendance?.logoutTime;
-    const isClockedOut = todayAttendance?.logoutTime;
+    const isClockedIn = !!todayAttendance?.loginTime && !todayAttendance?.logoutTime;
+    const isClockedOut = !!todayAttendance?.logoutTime;
     // Can clock in only if there's no attendance record, or no login/logout time recorded yet
     // This prevents clocking in if already clocked out or in any malformed state
     const canClockIn = !todayAttendance || (!todayAttendance.loginTime && !todayAttendance.logoutTime);

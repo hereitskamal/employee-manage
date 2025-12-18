@@ -203,7 +203,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
                     // Calculate net quantity change for this product
                     const oldProduct = oldProducts.find(
-                        (p) => p.productId.toString() === product.productId
+                        (p: { productId: mongoose.Types.ObjectId }) => p.productId.toString() === product.productId
                     );
                     const oldQuantity = oldProduct && wasCompleted ? oldProduct.quantity : 0;
                     const netQuantityChange = product.quantity - oldQuantity;

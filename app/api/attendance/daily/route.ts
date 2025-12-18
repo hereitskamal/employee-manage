@@ -51,15 +51,16 @@ export async function GET(req: Request) {
             };
         } else if (startDate || endDate) {
             // Date range
-            dateFilter.date = {};
+            const dateRange: { $gte?: Date; $lte?: Date } = {};
             if (startDate) {
-                dateFilter.date.$gte = new Date(startDate);
+                dateRange.$gte = new Date(startDate);
             }
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
-                dateFilter.date.$lte = end;
+                dateRange.$lte = end;
             }
+            dateFilter.date = dateRange;
         } else {
             // Default to today
             const today = new Date();

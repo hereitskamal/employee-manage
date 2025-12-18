@@ -2,7 +2,7 @@
 import "next-auth";
 import { DefaultSession } from "next-auth";
 
-export type UserRole = "admin" | "manager" | "employee" | "spc";
+export type UserRole = "admin" | "manager" | "employee" | "helper" | "spc";
 
 declare module "next-auth" {
 

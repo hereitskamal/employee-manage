@@ -33,15 +33,16 @@ export async function GET(req: Request) {
         // Build date filter
         const dateFilter: Record<string, unknown> = {};
         if (startDate || endDate) {
-            dateFilter.saleDate = {};
+            const saleDateFilter: { $gte?: Date; $lte?: Date } = {};
             if (startDate) {
-                dateFilter.saleDate.$gte = new Date(startDate);
+                saleDateFilter.$gte = new Date(startDate);
             }
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
-                dateFilter.saleDate.$lte = end;
+                saleDateFilter.$lte = end;
             }
+            dateFilter.saleDate = saleDateFilter;
         }
 
         // Build base query

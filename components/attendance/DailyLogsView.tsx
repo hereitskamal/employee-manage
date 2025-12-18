@@ -102,7 +102,7 @@ export default function DailyLogsView() {
             {data && (
                 <>
                     <Grid container spacing={2} sx={{ mb: 3 }}>
-                        <Grid item xs={12} sm={3}>
+                        <Grid size={{ xs: 12, sm: 3 }}>
                             <Card>
                                 <CardContent>
                                     <Typography color="text.secondary" gutterBottom>
@@ -112,7 +112,7 @@ export default function DailyLogsView() {
                                 </CardContent>
                             </Card>
                         </Grid>
-                        <Grid item xs={12} sm={3}>
+                        <Grid size={{ xs: 12, sm: 3 }}>
                             <Card>
                                 <CardContent>
                                     <Typography color="text.secondary" gutterBottom>
@@ -122,7 +122,7 @@ export default function DailyLogsView() {
                                 </CardContent>
                             </Card>
                         </Grid>
-                        <Grid item xs={12} sm={3}>
+                        <Grid size={{ xs: 12, sm: 3 }}>
                             <Card>
                                 <CardContent>
                                     <Typography color="text.secondary" gutterBottom>
@@ -132,7 +132,7 @@ export default function DailyLogsView() {
                                 </CardContent>
                             </Card>
                         </Grid>
-                        <Grid item xs={12} sm={3}>
+                        <Grid size={{ xs: 12, sm: 3 }}>
                             <Card>
                                 <CardContent>
                                     <Typography color="text.secondary" gutterBottom>

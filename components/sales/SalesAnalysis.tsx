@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Box, Grid, TextField, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
+import { Box, TextField, MenuItem, Select, FormControl, InputLabel } from "@mui/material";
 import { useSalesAnalysis } from "@/hooks/useSalesAnalysis";
 import RevenueChart from "./RevenueChart";
 import TopProductsChart from "./TopProductsChart";
@@ -97,20 +97,22 @@ export default function SalesAnalysis() {
             {loading ? (
                 <Box>Loading...</Box>
             ) : analysisData ? (
-                <Grid>
-                    <Grid item xs={12}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                    <Box>
                         <RevenueChart data={analysisData.revenueTrends} period={period} />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <TopProductsChart data={analysisData.topProducts} />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <CategorySalesChart data={analysisData.salesByCategory} />
-                    </Grid>
-                    <Grid item xs={12}>
+                    </Box>
+                    <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 3 }}>
+                        <Box sx={{ flex: 1 }}>
+                            <TopProductsChart data={analysisData.topProducts} />
+                        </Box>
+                        <Box sx={{ flex: 1 }}>
+                            <CategorySalesChart data={analysisData.salesByCategory} />
+                        </Box>
+                    </Box>
+                    <Box>
                         <SalesByEmployeeChart data={analysisData.salesByEmployee} />
-                    </Grid>
-                </Grid>
+                    </Box>
+                </Box>
             ) : (
                 <Box>No data available</Box>
             )}

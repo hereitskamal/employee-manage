@@ -126,39 +126,52 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!form.name.trim()) newErrors.name = "Name is required";
+    const name = String(form.name || "");
+    if (!name.trim()) newErrors.name = "Name is required";
 
-    if (!form.email.trim()) {
+    const email = String(form.email || "");
+    if (!email.trim()) {
       newErrors.email = "Email is required";
-    } else if (!EMAIL_REGEX.test(form.email.trim())) {
+    } else if (!EMAIL_REGEX.test(email.trim())) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!form.department?.trim()) newErrors.department = "Department is required";
+    const department = String(form.department || "");
+    if (!department.trim()) newErrors.department = "Department is required";
 
-    if (!form.salary || form.salary <= 0) newErrors.salary = "Valid salary is required";
+    const salary = Number(form.salary || 0);
+    if (!salary || salary <= 0) newErrors.salary = "Valid salary is required";
 
-    if (!form.age || form.age <= 0) {
+    const age = Number(form.age || 0);
+    if (!age || age <= 0) {
       newErrors.age = "Valid age is required";
-    } else if (form.age < 18 || form.age > 100) {
+    } else if (age < 18 || age > 100) {
       newErrors.age = "Age must be between 18 and 100";
     }
 
-    if (form.phone) {
-      const digitsOnly = form.phone.replace(/\D/g, "");
+    const phone = String(form.phone || "");
+    if (phone) {
+      const digitsOnly = phone.replace(/\D/g, "");
       if (digitsOnly.length !== 10) {
         newErrors.phone = "Phone number must be exactly 10 digits";
       }
     }
 
-    const dateError = validateDate(form.hireDate);
+    const hireDateValue = form.hireDate;
+    const dateStr = typeof hireDateValue === 'string' 
+      ? hireDateValue 
+      : hireDateValue instanceof Date 
+        ? hireDateValue.toISOString().split('T')[0]
+        : String(hireDateValue || "");
+    const dateError = validateDate(dateStr);
     if (dateError) newErrors.hireDate = dateError;
 
+    const performance = Number(form.performance || 0);
     if (
       form.performance !== undefined &&
       form.performance !== null &&
-      form.performance !== 0 &&
-      (form.performance < 0 || form.performance > 100)
+      performance !== 0 &&
+      (performance < 0 || performance > 100)
     ) {
       newErrors.performance = "Performance must be between 0 and 100";
     }
@@ -303,8 +316,8 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
                     options={departments}
                     loading={loadingDepartments}
                     value={form.department || ""}
-                    onChange={(_, value) => handleChange("department", value || "")}
-                    onInputChange={(_, value) => handleChange("department", value || "")}
+                    onChange={(_, value) => handleChange("department", String(value || ""))}
+                    onInputChange={(_, value) => handleChange("department", String(value || ""))}
                     renderInput={(params) => (
                       <TextField
                         {...params}

@@ -49,15 +49,16 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
         // Date range filter
         if (startDate || endDate) {
-            query.date = {};
+            const dateFilter: { $gte?: Date; $lte?: Date } = {};
             if (startDate) {
-                query.date.$gte = new Date(startDate);
+                dateFilter.$gte = new Date(startDate);
             }
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
-                query.date.$lte = end;
+                dateFilter.$lte = end;
             }
+            query.date = dateFilter;
         }
 
         const attendance = await Attendance.find(query)

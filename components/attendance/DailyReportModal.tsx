@@ -12,9 +12,9 @@ import {
     Typography,
     Divider,
     Chip,
-    Grid,
     CircularProgress,
     Alert,
+    Grid,
 } from "@mui/material";
 import { AttendanceRow } from "@/types/attendance";
 import { SaleRow } from "@/types/sale";
@@ -159,40 +159,38 @@ export default function DailyReportModal({
                             Attendance
                         </Typography>
                         {currentAttendance ? (
-                            <Grid container spacing={2} sx={{ mb: 3 }}>
-                                <Grid item xs={12}>
-                                    <Box
-                                        sx={{
-                                            display: "flex",
-                                            justifyContent: "space-between",
-                                            alignItems: "center",
-                                            p: 2,
-                                            bgcolor: "action.hover",
-                                            borderRadius: 1,
-                                        }}
-                                    >
-                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                            <AccessTimeIcon color="primary" />
-                                            <Typography variant="body1" fontWeight={500}>
-                                                Status
-                                            </Typography>
-                                        </Box>
-                                        <Chip
-                                            label={currentAttendance.status}
-                                            color={
-                                                currentAttendance.status === "present"
-                                                    ? "success"
-                                                    : currentAttendance.status === "partial"
-                                                    ? "warning"
-                                                    : "error"
-                                            }
-                                            size="small"
-                                        />
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 3 }}>
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        p: 2,
+                                        bgcolor: "action.hover",
+                                        borderRadius: 1,
+                                    }}
+                                >
+                                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                        <AccessTimeIcon color="primary" />
+                                        <Typography variant="body1" fontWeight={500}>
+                                            Status
+                                        </Typography>
                                     </Box>
-                                </Grid>
+                                    <Chip
+                                        label={currentAttendance.status}
+                                        color={
+                                            currentAttendance.status === "present"
+                                                ? "success"
+                                                : currentAttendance.status === "partial"
+                                                ? "warning"
+                                                : "error"
+                                        }
+                                        size="small"
+                                    />
+                                </Box>
 
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ p: 2 }}>
+                                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
+                                    <Box sx={{ flex: 1, p: 2 }}>
                                         <Typography variant="caption" color="text.secondary" display="block">
                                             Clock In Time
                                         </Typography>
@@ -200,10 +198,8 @@ export default function DailyReportModal({
                                             {formatTime(currentAttendance.loginTime)}
                                         </Typography>
                                     </Box>
-                                </Grid>
 
-                                <Grid item xs={12} sm={6}>
-                                    <Box sx={{ p: 2 }}>
+                                    <Box sx={{ flex: 1, p: 2 }}>
                                         <Typography variant="caption" color="text.secondary" display="block">
                                             Clock Out Time
                                         </Typography>
@@ -213,41 +209,37 @@ export default function DailyReportModal({
                                                 : "Not clocked out"}
                                         </Typography>
                                     </Box>
-                                </Grid>
+                                </Box>
 
                                 {currentAttendance.duration !== undefined && currentAttendance.duration !== null && (
-                                    <Grid item xs={12}>
-                                        <Box
-                                            sx={{
-                                                p: 2,
-                                                bgcolor: "primary.light",
-                                                borderRadius: 1,
-                                                color: "primary.contrastText",
-                                            }}
-                                        >
-                                            <Typography variant="caption" display="block">
-                                                Total Duration
-                                            </Typography>
-                                            <Typography variant="h5" sx={{ mt: 0.5 }}>
-                                                {formatDuration(currentAttendance.duration)}
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
+                                    <Box
+                                        sx={{
+                                            p: 2,
+                                            bgcolor: "primary.light",
+                                            borderRadius: 1,
+                                            color: "primary.contrastText",
+                                        }}
+                                    >
+                                        <Typography variant="caption" display="block">
+                                            Total Duration
+                                        </Typography>
+                                        <Typography variant="h5" sx={{ mt: 0.5 }}>
+                                            {formatDuration(currentAttendance.duration)}
+                                        </Typography>
+                                    </Box>
                                 )}
 
                                 {currentAttendance.notes && (
-                                    <Grid item xs={12}>
-                                        <Box sx={{ p: 2 }}>
-                                            <Typography variant="caption" color="text.secondary" display="block">
-                                                Notes
-                                            </Typography>
-                                            <Typography variant="body2" sx={{ mt: 0.5 }}>
-                                                {currentAttendance.notes}
-                                            </Typography>
-                                        </Box>
-                                    </Grid>
+                                    <Box sx={{ p: 2 }}>
+                                        <Typography variant="caption" color="text.secondary" display="block">
+                                            Notes
+                                        </Typography>
+                                        <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                            {currentAttendance.notes}
+                                        </Typography>
+                                    </Box>
                                 )}
-                            </Grid>
+                            </Box>
                         ) : (
                             <Box sx={{ mb: 3, p: 2, bgcolor: "action.hover", borderRadius: 1 }}>
                                 <Typography variant="body2" color="text.secondary">
@@ -263,56 +255,54 @@ export default function DailyReportModal({
                                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                                     Sales Summary
                                 </Typography>
-                                <Grid container spacing={2} sx={{ mb: 2 }}>
-                                    <Grid item xs={12} sm={6}>
-                                        <Box
-                                            sx={{
-                                                p: 2,
-                                                bgcolor: "success.light",
-                                                borderRadius: 1,
-                                                color: "success.contrastText",
-                                            }}
-                                        >
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                                                <ShoppingCartIcon />
-                                                <Typography variant="caption" display="block">
-                                                    Total Sales Today
-                                                </Typography>
-                                            </Box>
-                                            <Typography variant="h5" sx={{ mt: 0.5 }}>
-                                                {dailyStats.sales.count}
+                                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, mb: 2 }}>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            p: 2,
+                                            bgcolor: "success.light",
+                                            borderRadius: 1,
+                                            color: "success.contrastText",
+                                        }}
+                                    >
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                            <ShoppingCartIcon />
+                                            <Typography variant="caption" display="block">
+                                                Total Sales Today
                                             </Typography>
+                                        </Box>
+                                        <Typography variant="h5" sx={{ mt: 0.5 }}>
+                                            {dailyStats.sales.count}
+                                        </Typography>
+                                        <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
+                                            {dailyStats.sales.completedCount} completed
+                                        </Typography>
+                                    </Box>
+                                    <Box
+                                        sx={{
+                                            flex: 1,
+                                            p: 2,
+                                            bgcolor: "primary.light",
+                                            borderRadius: 1,
+                                            color: "primary.contrastText",
+                                        }}
+                                    >
+                                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                            <AttachMoneyIcon />
+                                            <Typography variant="caption" display="block">
+                                                Total Revenue Today
+                                            </Typography>
+                                        </Box>
+                                        <Typography variant="h5" sx={{ mt: 0.5 }}>
+                                            {formatCurrency(dailyStats.sales.totalRevenue)}
+                                        </Typography>
+                                        {dailyStats.sales.completedRevenue !== dailyStats.sales.totalRevenue && (
                                             <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
-                                                {dailyStats.sales.completedCount} completed
+                                                {formatCurrency(dailyStats.sales.completedRevenue)} completed
                                             </Typography>
-                                        </Box>
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <Box
-                                            sx={{
-                                                p: 2,
-                                                bgcolor: "primary.light",
-                                                borderRadius: 1,
-                                                color: "primary.contrastText",
-                                            }}
-                                        >
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                                                <AttachMoneyIcon />
-                                                <Typography variant="caption" display="block">
-                                                    Total Revenue Today
-                                                </Typography>
-                                            </Box>
-                                            <Typography variant="h5" sx={{ mt: 0.5 }}>
-                                                {formatCurrency(dailyStats.sales.totalRevenue)}
-                                            </Typography>
-                                            {dailyStats.sales.completedRevenue !== dailyStats.sales.totalRevenue && (
-                                                <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
-                                                    {formatCurrency(dailyStats.sales.completedRevenue)} completed
-                                                </Typography>
-                                            )}
-                                        </Box>
-                                    </Grid>
-                                </Grid>
+                                        )}
+                                    </Box>
+                                </Box>
 
                                 {dailyStats.sales.sales.length > 0 && (
                                     <Box sx={{ mt: 2 }}>

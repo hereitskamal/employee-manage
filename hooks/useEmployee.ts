@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { EmployeeRow } from "../types/employee";
 
-export default function useEmployee(id: number | null) {
+export default function useEmployee(id: string | null) {
   const [employee, setEmployee] = useState<EmployeeRow | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -13,7 +13,7 @@ export default function useEmployee(id: number | null) {
 
     (async () => {
       setLoading(true);
-      const res = await fetch(`/api/employees/${id.toString()}`);
+      const res = await fetch(`/api/employees/${id}`);
       const data = await res.json();
       setEmployee(data);
       setLoading(false);

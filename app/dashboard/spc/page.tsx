@@ -1,7 +1,7 @@
 // app/dashboard/spc/page.tsx
 "use client";
 
-import { Box, Grid, Card, CardContent, Typography, Button } from "@mui/material";
+import { Box, Card, CardContent, Typography, Button, Grid } from "@mui/material";
 import { useSales } from "@/hooks/useSales";
 import { useRouter } from "next/navigation";
 import SalesTable from "@/components/sales/SalesTable";
@@ -23,7 +23,7 @@ export default function SPCDashboard() {
 
             {/* Overview Cards */}
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -38,7 +38,7 @@ export default function SPCDashboard() {
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

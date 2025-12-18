@@ -114,7 +114,7 @@ export default function ProductTable({
         : baseColumns;
 
     const onRowClick = (params: GridRowParams<ProductRow & { _id?: string }>) => {
-        setSelectedId(params.row._id);
+        setSelectedId(params.row._id ?? null);
         // Later you can open a ProductDrawer/Edit dialog here
     };
 

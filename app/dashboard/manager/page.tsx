@@ -1,7 +1,7 @@
 // app/dashboard/manager/page.tsx
 "use client";
 
-import { Box, Grid, Card, CardContent, Typography, Button } from "@mui/material";
+import { Box, Card, CardContent, Typography, Button, Grid } from "@mui/material";
 import { useSalesAnalysis } from "@/hooks/useSalesAnalysis";
 import { useSales } from "@/hooks/useSales";
 import { useAttendance } from "@/hooks/useAttendance";
@@ -29,7 +29,7 @@ export default function ManagerDashboard() {
 
             {/* Overview Cards */}
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -49,7 +49,7 @@ export default function ManagerDashboard() {
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -67,7 +67,7 @@ export default function ManagerDashboard() {
                         </CardContent>
                     </Card>
                 </Grid>
-                <Grid item xs={12} sm={6} md={4}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                     <Card>
                         <CardContent>
                             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -111,11 +111,11 @@ export default function ManagerDashboard() {
 
             {/* Charts */}
             {analysisData && (
-                <Grid spacing={3}>
-                    <Grid item xs={12}>
+                <Grid container spacing={3}>
+                    <Grid size={{ xs: 12 }}>
                         <RevenueChart data={analysisData.revenueTrends} period="monthly" />
                     </Grid>
-                    <Grid item xs={12}>
+                    <Grid size={{ xs: 12 }}>
                         <SalesByEmployeeChart data={analysisData.salesByEmployee} />
                     </Grid>
                 </Grid>
