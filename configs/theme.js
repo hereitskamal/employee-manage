@@ -6,11 +6,16 @@ const theme = createTheme({
   palette: {
     mode: "light",
     primary: {
-      main: "#5d2bff",
-      light: "#5d2bff0d",
+      main: "#2563eb", // Tailwind blue-600
+      light: "#60a5fa", // Tailwind blue-400
+      dark: "#1d4ed8", // Tailwind blue-700
+      contrastText: "#ffffff",
     },
     secondary: {
-      main: "#5d2bff0d",
+      main: "#93c5fd", // Tailwind blue-300
+      light: "#bfdbfe", // Tailwind blue-200
+      dark: "#60a5fa", // Tailwind blue-400
+      contrastText: "#1e3a8a", // Tailwind blue-900
     },
   },
   typography: {

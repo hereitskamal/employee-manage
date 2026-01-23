@@ -15,7 +15,12 @@ export default function useEmployee(id: string | null) {
       setLoading(true);
       const res = await fetch(`/api/employees/${id}`);
       const data = await res.json();
-      setEmployee(data);
+      
+      if (res.ok && data.success && data.data) {
+        setEmployee(data.data);
+      } else {
+        setEmployee(null);
+      }
       setLoading(false);
     })();
   }, [id]);

@@ -129,3 +129,54 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     }
 }
 
+/**
+ * DELETE /api/attendance/:id
+ * Delete an attendance record (Admin/Manager only)
+ */
+export async function DELETE(req: NextRequest, context: RouteContext) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        }
+
+        const isPrivileged =
+            session.user.role === "admin" || session.user.role === "manager";
+        
+        if (!isPrivileged) {
+            return NextResponse.json(
+                { message: "Only admins and managers can delete attendance records" },
+                { status: 403 }
+            );
+        }
+
+        const params = await resolveRouteParams(context);
+        const id = params.id || "";
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return NextResponse.json({ message: "Invalid attendance ID" }, { status: 400 });
+        }
+
+        await connectToDB();
+
+        const attendance = await Attendance.findByIdAndDelete(id);
+
+        if (!attendance) {
+            return NextResponse.json(
+                { message: "Attendance record not found" },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json({
+            message: "Attendance record deleted successfully",
+        });
+    } catch (error) {
+        console.error("Delete attendance error:", error);
+        return NextResponse.json(
+            { message: "Failed to delete attendance" },
+            { status: 500 }
+        );
+    }
+}
+

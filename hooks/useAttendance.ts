@@ -12,13 +12,17 @@ interface UseAttendanceOptions {
 }
 
 interface AttendanceResponse {
-    attendance: AttendanceRow[];
-    pagination: {
-        total: number;
-        page: number;
-        limit: number;
-        totalPages: number;
+    success: boolean;
+    data?: {
+        attendance: AttendanceRow[];
+        pagination: {
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+        };
     };
+    error?: string;
 }
 
 export function useAttendance(options: UseAttendanceOptions = {}) {
@@ -42,13 +46,14 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
             if (options.page) params.append("page", options.page.toString());
 
             const response = await fetch(`/api/attendance?${params.toString()}`);
-            if (!response.ok) {
-                throw new Error("Failed to fetch attendance");
+            const data: AttendanceResponse = await response.json();
+            
+            if (!response.ok || !data.success || !data.data) {
+                throw new Error(data.error || "Failed to fetch attendance");
             }
 
-            const data: AttendanceResponse = await response.json();
-            setAttendance(data.attendance);
-            setPagination(data.pagination);
+            setAttendance(data.data.attendance);
+            setPagination(data.data.pagination);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {
@@ -80,14 +85,14 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
                 body: JSON.stringify(attendanceData),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to create attendance");
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "Failed to create attendance");
             }
 
-            const data = await response.json();
             await fetchAttendance(); // Refresh list
-            return data.attendance;
+            return data.data?.attendance;
         } catch (err) {
             throw err;
         }
@@ -105,14 +110,14 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
                 body: JSON.stringify(updates),
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to update attendance");
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "Failed to update attendance");
             }
 
-            const data = await response.json();
             await fetchAttendance(); // Refresh list
-            return data.attendance;
+            return data.data?.attendance;
         } catch (err) {
             throw err;
         }
@@ -125,15 +130,17 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
                 headers: { "Content-Type": "application/json" },
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to clock in");
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "Failed to clock in");
             }
 
-            const data = await response.json();
             // Update todayAttendance immediately from the response
-            if (data.attendance) {
-                setTodayAttendance(data.attendance);
+            // Note: clock-in endpoint may not be refactored yet, so handle both formats
+            const attendance = data.data?.attendance || data.attendance;
+            if (attendance) {
+                setTodayAttendance(attendance);
             }
             await fetchAttendance(); // Refresh list
             await getTodayAttendance(); // Refresh today's attendance to ensure consistency
@@ -150,15 +157,17 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
                 headers: { "Content-Type": "application/json" },
             });
 
-            if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.message || "Failed to clock out");
+            const data = await response.json();
+            
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || "Failed to clock out");
             }
 
-            const data = await response.json();
             // Update todayAttendance immediately from the response
-            if (data.attendance) {
-                setTodayAttendance(data.attendance);
+            // Note: clock-out endpoint may not be refactored yet, so handle both formats
+            const attendance = data.data?.attendance || data.attendance;
+            if (attendance) {
+                setTodayAttendance(attendance);
             }
             await fetchAttendance(); // Refresh list
             await getTodayAttendance(); // Refresh today's attendance to ensure consistency
@@ -181,15 +190,15 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
             const todayEndStr = todayEnd.toISOString().split('T')[0];
 
             const response = await fetch(`/api/attendance?startDate=${todayStr}&endDate=${todayEndStr}&limit=10`);
-            if (!response.ok) {
-                throw new Error("Failed to fetch today's attendance");
-            }
-
             const data: AttendanceResponse = await response.json();
             
+            if (!response.ok || !data.success || !data.data) {
+                throw new Error(data.error || "Failed to fetch today's attendance");
+            }
+
             // Find today's record by checking if loginTime is within today's range
             // This is more reliable than checking the date field due to timezone issues
-            const todayRecord = data.attendance.find(record => {
+            const todayRecord = data.data.attendance.find(record => {
                 if (!record.loginTime) return false;
                 const loginTime = new Date(record.loginTime);
                 return loginTime >= today && loginTime <= todayEnd;

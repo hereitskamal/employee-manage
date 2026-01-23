@@ -10,6 +10,9 @@ import { useProducts } from "@/hooks/useProducts";
 import ProductFilters from "@/components/products/ProductFilters";
 import ProductTable from "@/components/products/ProductTable";
 import AddProductModal from "@/components/products/AddProductModal";
+import LoadingState from "@/components/ui/LoadingState";
+import EmptyState from "@/components/ui/EmptyState";
+import ErrorState from "@/components/ui/ErrorState";
 
 export default function ProductsPage() {
     const {
@@ -24,6 +27,7 @@ export default function ProductsPage() {
         setBrandFilter,
         fetchProducts,
         loading,
+        error,
     } = useProducts();
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -118,13 +122,33 @@ export default function ProductsPage() {
             )}
 
             <Box sx={{ width: "100%" }}>
-                <ProductTable
-                    rows={filteredProducts}
-                    loading={loading}
-                    fetchProducts={fetchProducts}
-                    rowSelectionModel={rowSelectionModel}
-                    onSelectionChange={setRowSelectionModel}
-                />
+                {error ? (
+                    <ErrorState
+                        message={error.message}
+                        onRetry={fetchProducts}
+                    />
+                ) : loading ? (
+                    <LoadingState message="Loading products..." />
+                ) : filteredProducts.length === 0 ? (
+                    <EmptyState
+                        title="No products found"
+                        message={
+                            searchText || categoryFilter || brandFilter
+                                ? "No products match your current filters. Try adjusting your search criteria."
+                                : "Get started by adding your first product."
+                        }
+                        actionLabel="Add Product"
+                        onAction={() => setModalOpen(true)}
+                    />
+                ) : (
+                    <ProductTable
+                        rows={filteredProducts}
+                        loading={loading}
+                        fetchProducts={fetchProducts}
+                        rowSelectionModel={rowSelectionModel}
+                        onSelectionChange={setRowSelectionModel}
+                    />
+                )}
             </Box>
 
             <AddProductModal

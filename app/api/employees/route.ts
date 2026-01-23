@@ -8,6 +8,9 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { hash } from "bcryptjs";
 import mongoose from "mongoose";
+import { employeeCreateSchema, formatValidationError } from "@/lib/validators";
+import { ZodError } from "zod";
+import { logAudit, getUserIdFromSession } from "@/lib/audit";
 
 /**
  * ---------------------------------------------------------
@@ -104,6 +107,28 @@ export async function POST(req: Request) {
         }
 
         const body = await req.json();
+
+        /**
+         * ---------------------------------------------------------
+         * 1. Validate Request Body with Zod
+         * ---------------------------------------------------------
+         */
+        let validatedData;
+        try {
+            validatedData = employeeCreateSchema.parse(body);
+        } catch (error) {
+            if (error instanceof ZodError) {
+                return NextResponse.json(
+                    { message: formatValidationError(error) },
+                    { status: 400 }
+                );
+            }
+            return NextResponse.json(
+                { message: "Invalid request data" },
+                { status: 400 }
+            );
+        }
+
         const {
             name,
             email,
@@ -115,19 +140,7 @@ export async function POST(req: Request) {
             location,
             age,
             performance,
-        } = body;
-
-        /**
-         * ---------------------------------------------------------
-         * 1. Validate Required Fields
-         * ---------------------------------------------------------
-         */
-        if (!name || !email || !phone || !department || !title || !salary || !hireDate) {
-            return NextResponse.json(
-                { message: "All required fields must be filled" },
-                { status: 400 }
-            );
-        }
+        } = validatedData;
 
         await connectToDB();
 
@@ -212,7 +225,25 @@ export async function POST(req: Request) {
 
         /**
          * ---------------------------------------------------------
-         * 7. Success Response
+         * 7. Log Audit Event (non-blocking)
+         * ---------------------------------------------------------
+         */
+        logAudit({
+            userId: getUserIdFromSession(session) || employee._id.toString(),
+            action: "create",
+            resource: "employee",
+            resourceId: employee._id,
+            metadata: {
+                name: employee.name,
+                email: employee.email,
+                department: employee.department,
+                title: employee.title,
+            },
+        });
+
+        /**
+         * ---------------------------------------------------------
+         * 8. Success Response
          * ---------------------------------------------------------
          */
         return NextResponse.json(

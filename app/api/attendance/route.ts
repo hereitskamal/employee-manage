@@ -1,10 +1,10 @@
 // app/api/attendance/route.ts
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { Attendance } from "@/models/Attendance";
 import mongoose from "mongoose";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * GET /api/attendance
@@ -19,10 +19,7 @@ export async function GET(req: Request) {
         const session = await getServerSession(authOptions);
 
         if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
+            return failure("Unauthorized", 401);
         }
 
         await connectToDB();
@@ -79,7 +76,7 @@ export async function GET(req: Request) {
 
         const total = await Attendance.countDocuments(query);
 
-        return NextResponse.json({
+        return success({
             attendance,
             pagination: {
                 total,
@@ -91,10 +88,7 @@ export async function GET(req: Request) {
 
     } catch (error) {
         console.error("Fetch attendance error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch attendance" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch attendance", 500);
     }
 }
 

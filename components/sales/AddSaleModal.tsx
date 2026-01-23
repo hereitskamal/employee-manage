@@ -33,6 +33,7 @@ import { useSales } from "@/hooks/useSales";
 interface AddSaleModalProps {
     open: boolean;
     onClose: () => void;
+    onAdded?: () => void;
 }
 
 interface SaleProduct {
@@ -41,7 +42,7 @@ interface SaleProduct {
     price: number;
 }
 
-export default function AddSaleModal({ open, onClose }: AddSaleModalProps) {
+export default function AddSaleModal({ open, onClose, onAdded }: AddSaleModalProps) {
     const { data: session } = useSession();
     const { products } = useProducts();
     const { createSale, refetch } = useSales();
@@ -120,6 +121,9 @@ export default function AddSaleModal({ open, onClose }: AddSaleModalProps) {
                 status: "completed",
             });
             await refetch();
+            if (onAdded) {
+                onAdded();
+            }
             onClose();
         } catch (error) {
             alert(error instanceof Error ? error.message : "Failed to create sale");

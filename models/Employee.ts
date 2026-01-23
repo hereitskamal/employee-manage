@@ -51,5 +51,12 @@ const EmployeeSchema = new Schema<IEmployee>(
   { timestamps: true }
 );
 
+// Indexes for query optimization
+// Compound index: department + createdAt (descending)
+// Why: Optimizes queries filtering by department with newest employees first, common in employee listings.
+// Used in: /api/employees (with department filter), employee management UI
+// Direction: createdAt: -1 for descending sort (newest first) which matches .sort({ createdAt: -1 })
+EmployeeSchema.index({ department: 1, createdAt: -1 });
+
 export const Employee =
   models.Employee || mongoose.model<IEmployee>("Employee", EmployeeSchema);

@@ -50,6 +50,10 @@ const AttendanceSchema = new Schema<IAttendance>(
 );
 
 // Indexes for query optimization
+// Compound index: userId + date (descending)
+// Why: Optimizes queries filtering by user and date range, with most recent records first.
+// Used in: /api/attendance/user/:userId, /api/attendance (with userId filter)
+// Direction: date: -1 for descending sort (newest first) which matches .sort({ date: -1 })
 AttendanceSchema.index({ userId: 1, date: -1 });
 AttendanceSchema.index({ date: -1 });
 AttendanceSchema.index({ status: 1 });

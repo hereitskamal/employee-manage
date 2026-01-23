@@ -6,6 +6,7 @@ import {
     GridToolbar,
     GridColDef,
     GridRenderCellParams,
+    GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { AttendanceRow } from "@/types/attendance";
 import { Box, Chip } from "@mui/material";
@@ -13,11 +14,17 @@ import { Box, Chip } from "@mui/material";
 interface AttendanceTableProps {
     rows: AttendanceRow[];
     loading: boolean;
+    fetchAttendance?: () => void;
+    rowSelectionModel?: GridRowSelectionModel;
+    onSelectionChange?: (model: GridRowSelectionModel) => void;
 }
 
 export default function AttendanceTable({
     rows,
     loading,
+    fetchAttendance,
+    rowSelectionModel,
+    onSelectionChange,
 }: AttendanceTableProps) {
     const columns: GridColDef[] = [
         {
@@ -159,14 +166,17 @@ export default function AttendanceTable({
             id,
         };
     });
-    console.log(rows);
-    console.log(processedRows);
     return (
         <Box sx={{ height: 600, width: "100%" }}>
             <DataGrid
                 rows={processedRows}
                 columns={columns}
+                getRowId={(row) => row._id || row.id}
                 loading={loading}
+                checkboxSelection={!!rowSelectionModel && !!onSelectionChange}
+                disableRowSelectionOnClick={!!rowSelectionModel && !!onSelectionChange}
+                rowSelectionModel={rowSelectionModel}
+                onRowSelectionModelChange={onSelectionChange ? (newModel) => onSelectionChange(newModel) : undefined}
                 slots={{ toolbar: GridToolbar }}
                 initialState={{
                     pagination: {
@@ -174,6 +184,12 @@ export default function AttendanceTable({
                     },
                 }}
                 pageSizeOptions={[10, 25, 50, 100]}
+                sx={{
+                    backgroundColor: "white",
+                    border: "none",
+                    borderRadius: 3,
+                    p: 2,
+                }}
             />
         </Box>
     );

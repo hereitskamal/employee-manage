@@ -5,6 +5,7 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import theme from "@/configs/theme";
 import { SessionProvider } from "next-auth/react";
 import { Inter } from "next/font/google";
+import QueryProvider from "@/lib/providers/QueryProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,12 +17,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className={inter.className}>
-        <SessionProvider>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            {children}
-          </ThemeProvider>
-        </SessionProvider>
+        <QueryProvider>
+          <SessionProvider>
+            <ThemeProvider theme={theme}>
+              <CssBaseline />
+              {children}
+            </ThemeProvider>
+          </SessionProvider>
+        </QueryProvider>
       </body>
     </html>
   );

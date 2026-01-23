@@ -108,5 +108,12 @@ const ProductSchema = new Schema<IProduct>(
   { timestamps: true }
 );
 
+// Indexes for query optimization
+// Compound index: category + brand
+// Why: Optimizes filtering by category and brand, commonly used together in product listings.
+// Used in: Product filters (useProducts hook), product search and filtering UI
+// Direction: Both ascending (1) for equality and range queries on category/brand combinations
+ProductSchema.index({ category: 1, brand: 1 });
+
 export const Product =
   models.Product || mongoose.model<IProduct>("Product", ProductSchema);

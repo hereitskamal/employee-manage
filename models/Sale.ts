@@ -89,6 +89,11 @@ const SaleSchema = new Schema<ISale>(
 );
 
 // Indexes for query optimization
+// Compound index: saleDate + soldBy
+// Why: Optimizes queries filtering by date range and employee, commonly used together in sales reports.
+// Used in: /api/sales (with date range + employeeId), /api/sales/stats, /api/sales/analysis
+// Direction: saleDate: -1 for descending sort (newest first), soldBy: 1 for equality lookups
+SaleSchema.index({ saleDate: -1, soldBy: 1 });
 SaleSchema.index({ saleDate: -1 });
 SaleSchema.index({ soldBy: 1 });
 SaleSchema.index({ status: 1 });

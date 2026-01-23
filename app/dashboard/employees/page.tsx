@@ -14,6 +14,9 @@ import EmployeeFilters from "@/components/employees/EmployeeFilter";
 import EmployeeTable from "@/components/employees/EmployeeTable";
 import AddEmployeeModal from "@/components/employees/AddEmployee";
 import { departments } from "@/data/departments";
+import LoadingState from "@/components/ui/LoadingState";
+import EmptyState from "@/components/ui/EmptyState";
+import ErrorState from "@/components/ui/ErrorState";
 
 const AVAILABLE_ROLES = ["employee", "manager", "admin", "helper"];
 
@@ -26,6 +29,7 @@ export default function Home() {
         setDepartmentFilter,
         fetchEmployees,
         loading,
+        error,
     } = useEmployees();
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -192,13 +196,33 @@ export default function Home() {
             )}
 
             <Box sx={{ width: "100%" }}>
-                <EmployeeTable
-                    loading={loading}
-                    rows={filteredEmployees}
-                    fetchEmployees={fetchEmployees}
-                    rowSelectionModel={rowSelectionModel}
-                    onSelectionChange={setRowSelectionModel}
-                />
+                {error ? (
+                    <ErrorState
+                        message={error.message}
+                        onRetry={fetchEmployees}
+                    />
+                ) : loading ? (
+                    <LoadingState message="Loading employees..." />
+                ) : filteredEmployees.length === 0 ? (
+                    <EmptyState
+                        title="No employees found"
+                        message={
+                            searchText || departmentFilter
+                                ? "No employees match your current filters. Try adjusting your search criteria."
+                                : "Get started by adding your first employee."
+                        }
+                        actionLabel="Add Employee"
+                        onAction={() => setModalOpen(true)}
+                    />
+                ) : (
+                    <EmployeeTable
+                        loading={loading}
+                        rows={filteredEmployees}
+                        fetchEmployees={fetchEmployees}
+                        rowSelectionModel={rowSelectionModel}
+                        onSelectionChange={setRowSelectionModel}
+                    />
+                )}
             </Box>
 
             <AddEmployeeModal

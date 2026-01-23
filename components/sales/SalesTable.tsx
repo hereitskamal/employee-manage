@@ -8,6 +8,7 @@ import {
     GridColDef,
     GridRowParams,
     GridRenderCellParams,
+    GridRowSelectionModel,
 } from "@mui/x-data-grid";
 import { SaleRow } from "@/types/sale";
 import { useSession } from "next-auth/react";
@@ -17,12 +18,16 @@ interface SalesTableProps {
     rows: SaleRow[];
     loading: boolean;
     fetchSales: () => void;
+    rowSelectionModel: GridRowSelectionModel;
+    onSelectionChange: (model: GridRowSelectionModel) => void;
 }
 
 export default function SalesTable({
     rows,
     loading,
     fetchSales,
+    rowSelectionModel,
+    onSelectionChange,
 }: SalesTableProps) {
     const { data: session } = useSession();
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -161,7 +166,12 @@ export default function SalesTable({
             <DataGrid
                 rows={processedRows}
                 columns={columns}
+                getRowId={(row) => row._id || row.id}
                 loading={loading}
+                checkboxSelection
+                disableRowSelectionOnClick
+                rowSelectionModel={rowSelectionModel}
+                onRowSelectionModelChange={(newModel) => onSelectionChange(newModel)}
                 slots={{ toolbar: GridToolbar }}
                 initialState={{
                     pagination: {
@@ -173,6 +183,10 @@ export default function SalesTable({
                     setSelectedId(params.id as string);
                 }}
                 sx={{
+                    backgroundColor: "white",
+                    border: "none",
+                    borderRadius: 3,
+                    p: 2,
                     "& .MuiDataGrid-row:hover": {
                         cursor: "pointer",
                     },

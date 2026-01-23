@@ -1,17 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import {
-    ResponsiveContainer,
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    LabelList,
-} from "recharts";
-import { Card, CardHeader, CardContent, useTheme, Typography } from "@mui/material";
+import ReactECharts from "echarts-for-react";
+import ChartCard from "@/components/dashboard/ChartCard";
 
 interface Employee {
     id: number;
@@ -25,7 +16,6 @@ interface SalaryEntry {
 }
 
 export default function SalaryChart() {
-    const theme = useTheme();
     const [employees, setEmployees] = useState<Employee[]>([]);
 
     // Fetch employees from API
@@ -58,92 +48,90 @@ export default function SalaryChart() {
         }));
     }, [employees]);
 
-    // Truncated X-axis Tick
-    interface TickProps {
-        x?: number;
-        y?: number;
-        payload?: {
-            value: string;
-        };
-    }
-
-    const EllipsisTick: React.FC<TickProps> = ({ x = 0, y = 0, payload }) => {
-        const text = payload?.value || "";
-        const maxLen = 10;
-        const truncated = text.length > maxLen ? text.slice(0, maxLen) + "…" : text;
-
-        return (
-            <g transform={`translate(${x},${y})`}>
-                <title>{text}</title>
-                <text
-                    x={0}
-                    y={0}
-                    dy={16}
-                    textAnchor="middle"
-                    fill="#666"
-                    fontSize={12}
-                >
-                    {truncated}
-                </text>
-            </g>
-        );
-    };
+    const option = useMemo(() => ({
+        grid: {
+            left: "3%",
+            right: "4%",
+            bottom: "3%",
+            top: "15%",
+            containLabel: true,
+        },
+        tooltip: {
+            trigger: "axis",
+            axisPointer: {
+                type: "shadow",
+            },
+            backgroundColor: "white",
+            borderColor: "#f0f0f0",
+            borderRadius: 12,
+            padding: 16,
+            textStyle: {
+                color: "#333",
+            },
+            formatter: (params: any) => {
+                const param = params[0];
+                return `<b>${param.axisValue}</b><br/>${param.marker}Average Salary: $${param.value.toLocaleString()}`;
+            },
+        },
+        xAxis: {
+            type: "category",
+            data: salaryData.map((item) => item.department),
+            axisLine: {
+                lineStyle: {
+                    color: "#e5e7eb",
+                },
+            },
+            axisLabel: {
+                color: "#9ca3af",
+                interval: 0,
+                formatter: (value: string) => {
+                    return value.length > 10 ? value.slice(0, 10) + "…" : value;
+                },
+            },
+        },
+        yAxis: {
+            type: "value",
+            axisLine: {
+                show: false,
+            },
+            axisLabel: {
+                color: "#9ca3af",
+                formatter: (value: number) => `$${value.toLocaleString()}`,
+            },
+            splitLine: {
+                lineStyle: {
+                    color: "#f3f4f6",
+                },
+            },
+        },
+        series: [
+            {
+                name: "Average Salary",
+                type: "bar",
+                data: salaryData.map((item) => item.avgSalary),
+                barWidth: "48px",
+                itemStyle: {
+                    color: "#3b82f6",
+                    borderRadius: [4, 4, 0, 0],
+                },
+                label: {
+                    show: true,
+                    position: "top",
+                    formatter: (params: any) => `$${params.value.toLocaleString()}`,
+                    fontSize: 12,
+                    color: "#6b7280",
+                },
+            },
+        ],
+    }), [salaryData]);
 
     return (
-        <Card sx={{ mt: 5, p: 3, boxShadow: 0 }}>
-            <CardHeader
-                title={
-                    <Typography variant="h3" fontWeight={600} color="primary.main" fontFamily="poppins">
-                        Average Salary by Department
-                    </Typography>
-                }
-                sx={{ textAlign: "center", pb: 6 }}
+        <ChartCard title="Average Salary by Department">
+            <ReactECharts
+                option={option}
+                style={{ height: "350px", width: "100%" }}
+                opts={{ renderer: "svg" }}
             />
-            <CardContent>
-                <div style={{ width: "100%", height: 350 }}>
-                    <ResponsiveContainer>
-                        <BarChart data={salaryData} barSize={48}>
-                            <CartesianGrid
-                                strokeDasharray="3 3"
-                                stroke={theme.palette.divider}
-                            />
-                            <XAxis
-                                dataKey="department"
-                                tick={<EllipsisTick />}
-                                interval={0}
-                            />
-                            <YAxis
-                                tick={{ fill: theme.palette.text.secondary }}
-                            />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: theme.palette.background.paper,
-                                    border: `1px solid ${theme.palette.divider}`,
-                                }}
-                            />
-                            <Bar
-                                dataKey="avgSalary"
-                                fill="url(#lightGrayGradient)"
-                                radius={[8, 8, 0, 0]}
-                                stroke={theme.palette.divider}
-                                strokeWidth={1}
-                            >
-                                <LabelList dataKey="avgSalary" position="top" fill={theme.palette.text.secondary} fontSize={12} />
-                            </Bar>
-
-                            <defs>
-                                <linearGradient id="lightGrayGradient" x1="0" y1="0" x2="0" y2="2">
-                                    <stop
-                                        offset="0%"
-                                        stopColor="#f5f5f5"
-                                        stopOpacity={0.8}
-                                    />
-                                </linearGradient>
-                            </defs>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </CardContent>
-        </Card>
+        </ChartCard>
     );
 }

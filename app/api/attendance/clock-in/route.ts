@@ -5,12 +5,25 @@ import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { Attendance } from "@/models/Attendance";
 import mongoose from "mongoose";
+import { isWithinClockInWindow, getTodayDateRange } from "@/lib/utils/attendance";
+import { ATTENDANCE_ERRORS } from "@/lib/constants/attendance";
 
 /**
  * POST /api/attendance/clock-in
  * Clock in for daily attendance
  * 
- * Automatically uses current time and creates/updates today's attendance record
+ * Business Rules:
+ * 1. Clock-in is only allowed within the configured time window (default: 6 AM - 10 AM)
+ * 2. Prevents double clock-in (returns existing record if already clocked in)
+ * 3. Automatically uses current time and creates/updates today's attendance record
+ * 
+ * Logic Flow:
+ * 1. Authenticate user session
+ * 2. Validate clock-in time is within allowed window
+ * 3. Check if attendance record exists for today
+ * 4. If exists and already clocked in, return existing record
+ * 5. If exists but not clocked in, update with login time
+ * 6. If new, create attendance record with login time
  */
 export async function POST(req: Request) {
     try {
@@ -33,10 +46,23 @@ export async function POST(req: Request) {
             );
         }
 
+        const currentTime = new Date();
+
+        // Rule 1: Validate clock-in time window
+        // Prevent clock-in outside allowed time window
+        const timeWindowValidation = isWithinClockInWindow(currentTime);
+        if (!timeWindowValidation.isValid) {
+            return NextResponse.json(
+                { 
+                    message: timeWindowValidation.error,
+                    error: "CLOCK_IN_OUTSIDE_WINDOW"
+                },
+                { status: 400 }
+            );
+        }
+
         // Get today's date range (using UTC to avoid timezone issues)
-        const now = new Date();
-        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
-        const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+        const { today, todayEnd } = getTodayDateRange();
 
         // Check if today's attendance record exists (check both date and loginTime for reliability)
         const existingAttendance = await Attendance.findOne({
@@ -47,10 +73,9 @@ export async function POST(req: Request) {
             ]
         });
 
-        const currentTime = new Date();
-
         if (existingAttendance) {
-            // If already clocked in, return existing record
+            // Rule 2: Prevent double clock-in
+            // If already clocked in, return existing record with appropriate message
             if (existingAttendance.loginTime) {
                 const populated = await Attendance.findById(existingAttendance._id)
                     .populate("userId", "name email role department")
@@ -59,8 +84,9 @@ export async function POST(req: Request) {
                 return NextResponse.json(
                     { 
                         attendance: populated, 
-                        message: "Already clocked in for today",
-                        alreadyClockedIn: true
+                        message: ATTENDANCE_ERRORS.CLOCK_IN_ALREADY_CLOCKED_IN,
+                        alreadyClockedIn: true,
+                        error: "ALREADY_CLOCKED_IN"
                     },
                     { status: 200 }
                 );

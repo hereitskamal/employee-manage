@@ -1,11 +1,15 @@
 // app/api/employees/[id]/route.ts
-import { NextResponse, NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { User } from "@/models/User";
 import mongoose from "mongoose";
 import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
+import { employeeUpdateSchema, formatValidationError } from "@/lib/validators";
+import { ZodError } from "zod";
+import { success, failure } from "@/lib/apiResponse";
+import { logAudit, getUserIdFromSession } from "@/lib/audit";
 
 /**
  * =========================================================
@@ -19,7 +23,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     // Must be logged in
     if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return failure("Unauthorized", 401);
     }
 
     const params = await resolveRouteParams(context);
@@ -27,10 +31,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
     // Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { message: "Invalid employee ID" },
-        { status: 400 }
-      );
+      return failure("Invalid employee ID", 400);
     }
 
     await connectToDB();
@@ -40,19 +41,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
       .populate("createdBy", "name email");
 
     if (!employee) {
-      return NextResponse.json(
-        { message: "Employee not found" },
-        { status: 404 }
-      );
+      return failure("Employee not found", 404);
     }
 
-    return NextResponse.json(employee);
+    return success(employee);
   } catch (error) {
     console.error("Fetch employee error:", error);
-    return NextResponse.json(
-      { message: "Failed to fetch employee" },
-      { status: 500 }
-    );
+    return failure("Failed to fetch employee", 500);
   }
 }
 
@@ -83,6 +78,28 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     }
 
     const body = await req.json();
+
+    /**
+     * ---------------------------------------------------------
+     * 1. Validate Request Body with Zod
+     * ---------------------------------------------------------
+     */
+    let validatedData;
+    try {
+      validatedData = employeeUpdateSchema.parse(body);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        return NextResponse.json(
+          { message: formatValidationError(error) },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { message: "Invalid request data" },
+        { status: 400 }
+      );
+    }
+
     const {
       name,
       email,
@@ -95,7 +112,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
       age,
       performance,
       role,
-    } = body;
+    } = validatedData;
 
     await connectToDB();
 
@@ -159,6 +176,24 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
     await employee.save();
 
+    /**
+     * ---------------------------------------------------------
+     * Log Audit Event (non-blocking)
+     * ---------------------------------------------------------
+     */
+    const changedFields = Object.keys(validatedData);
+    logAudit({
+      userId: getUserIdFromSession(session) || id,
+      action: "update",
+      resource: "employee",
+      resourceId: id,
+      metadata: {
+        changedFields,
+        previousEmail: employee.email,
+        newEmail: email ? email.toLowerCase() : employee.email,
+      },
+    });
+
     return NextResponse.json({
       employee,
       message: "Employee updated successfully",
@@ -209,7 +244,27 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
       );
     }
 
+    // Store employee info before deletion for audit log
+    const deletedEmployeeInfo = {
+      name: employee.name,
+      email: employee.email,
+      department: employee.department,
+    };
+
     await User.findByIdAndDelete(id);
+
+    /**
+     * ---------------------------------------------------------
+     * Log Audit Event (non-blocking)
+     * ---------------------------------------------------------
+     */
+    logAudit({
+      userId: getUserIdFromSession(session) || id,
+      action: "delete",
+      resource: "employee",
+      resourceId: id,
+      metadata: deletedEmployeeInfo,
+    });
 
     return NextResponse.json({
       message: "Employee deleted successfully",

@@ -1,31 +1,20 @@
-import { Card, CardContent, Typography } from "@mui/material";
-
 export default function ChartCard({
     title,
     children,
+    className = "",
 }: {
     title: string;
     children: React.ReactNode;
+    className?: string;
 }) {
     return (
-        <Card
-            sx={{
-                height: "100%",
-                borderRadius: 3,
-                boxShadow: "none",
-            }}
-        >
-            <CardContent>
-                {children}
-                <Typography
-                    variant="body1"
-                    fontWeight={400}
-                    sx={{ color: "#3f3f3fff" }}
-                >
-                    {title}
-                </Typography>
-
-            </CardContent>
-        </Card>
+        <div className={`bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+            {title && (
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                </div>
+            )}
+            {children}
+        </div>
     );
 }
