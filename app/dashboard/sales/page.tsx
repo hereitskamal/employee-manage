@@ -56,9 +56,20 @@ export default function SalesPage() {
                 .join(" ")
                 .toLowerCase();
             
-            const soldBy = typeof sale.soldBy === "object" 
-                ? (sale.soldBy?.name || sale.soldBy?.email || "").toLowerCase()
-                : String(sale.soldBy || "").toLowerCase();
+            let soldBy = "";
+            if (typeof sale.soldBy === "object" && sale.soldBy !== null) {
+                // Check if it's a populated object with name/email
+                if ("name" in sale.soldBy || "email" in sale.soldBy) {
+                    soldBy = ((sale.soldBy as { name?: string; email?: string }).name || 
+                             (sale.soldBy as { name?: string; email?: string }).email || 
+                             "").toLowerCase();
+                } else {
+                    // It's an ObjectId
+                    soldBy = String(sale.soldBy).toLowerCase();
+                }
+            } else {
+                soldBy = String(sale.soldBy || "").toLowerCase();
+            }
 
             return productNames.includes(search) || soldBy.includes(search);
         });

@@ -1,7 +1,9 @@
 // app/dashboard/spc/page.tsx
 "use client";
 
+import { useState } from "react";
 import { Box, Card, CardContent, Typography, Button, Grid } from "@mui/material";
+import { GridRowSelectionModel, GridRowId } from "@mui/x-data-grid";
 import { useSales } from "@/hooks/useSales";
 import { useRouter } from "next/navigation";
 import SalesTable from "@/components/sales/SalesTable";
@@ -11,6 +13,13 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 export default function SPCDashboard() {
     const router = useRouter();
     const { sales, loading: salesLoading } = useSales({ limit: 10 });
+    
+    // MUI v8 selection model structure
+    const [rowSelectionModel, setRowSelectionModel] =
+        useState<GridRowSelectionModel>({
+            type: "include",
+            ids: new Set<GridRowId>(),
+        });
 
     const totalSales = sales.length;
     const totalRevenue = sales.reduce((sum, sale) => sum + (sale.totalAmount || 0), 0);
@@ -76,7 +85,13 @@ export default function SPCDashboard() {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                     Recent Sales
                 </Typography>
-                <SalesTable rows={sales.slice(0, 10)} loading={salesLoading} fetchSales={() => {}} />
+                <SalesTable 
+                    rows={sales.slice(0, 10)} 
+                    loading={salesLoading} 
+                    fetchSales={() => {}} 
+                    rowSelectionModel={rowSelectionModel}
+                    onSelectionChange={setRowSelectionModel}
+                />
             </Box>
         </Box>
     );

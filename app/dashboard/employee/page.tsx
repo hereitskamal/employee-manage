@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { Box, Card, CardContent, Typography, Button, Grid } from "@mui/material";
+import { GridRowSelectionModel, GridRowId } from "@mui/x-data-grid";
 import { useSales } from "@/hooks/useSales";
 import { useAttendance } from "@/hooks/useAttendance";
 import { useSession } from "next-auth/react";
@@ -32,6 +33,13 @@ export default function EmployeeDashboard() {
     
     const [showDailyReport, setShowDailyReport] = useState(false);
     const [lastClockedInAttendance, setLastClockedInAttendance] = useState<AttendanceRow | null>(null);
+    
+    // MUI v8 selection model structure
+    const [rowSelectionModel, setRowSelectionModel] =
+        useState<GridRowSelectionModel>({
+            type: "include",
+            ids: new Set<GridRowId>(),
+        });
 
     const personalSales = sales.filter(
         (sale) =>
@@ -179,7 +187,13 @@ export default function EmployeeDashboard() {
                 <Typography variant="h6" sx={{ mb: 2 }}>
                     Recent Sales
                 </Typography>
-                <SalesTable rows={personalSales.slice(0, 5)} loading={salesLoading} fetchSales={() => {}} />
+                <SalesTable 
+                    rows={personalSales.slice(0, 5)} 
+                    loading={salesLoading} 
+                    fetchSales={() => {}} 
+                    rowSelectionModel={rowSelectionModel}
+                    onSelectionChange={setRowSelectionModel}
+                />
             </Box>
 
             {/* Recent Attendance */}

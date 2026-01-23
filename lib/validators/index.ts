@@ -18,7 +18,7 @@ export * from "./attendance";
  * Returns a string with all validation errors
  */
 export function formatValidationError(error: ZodError): string {
-  const errors = error.errors.map((err) => {
+  const errors = error.issues.map((err) => {
     const path = err.path.join(".");
     return path ? `${path}: ${err.message}` : err.message;
   });
@@ -31,7 +31,7 @@ export function formatValidationError(error: ZodError): string {
  */
 export function formatValidationErrorObject(error: ZodError): Record<string, string> {
   const errors: Record<string, string> = {};
-  error.errors.forEach((err) => {
+  error.issues.forEach((err) => {
     const path = err.path.join(".");
     if (path) {
       errors[path] = err.message;

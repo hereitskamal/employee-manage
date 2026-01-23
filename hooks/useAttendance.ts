@@ -29,7 +29,7 @@ export function useAttendance(options: UseAttendanceOptions = {}) {
     const [attendance, setAttendance] = useState<AttendanceRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [pagination, setPagination] = useState<AttendanceResponse["pagination"] | null>(null);
+    const [pagination, setPagination] = useState<NonNullable<AttendanceResponse["data"]>["pagination"] | null>(null);
     const [todayAttendance, setTodayAttendance] = useState<AttendanceRow | null>(null);
 
     const fetchAttendance = async () => {

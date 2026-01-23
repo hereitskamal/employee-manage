@@ -45,9 +45,20 @@ export default function AttendancePage() {
         if (!searchText) return attendance;
         const search = searchText.toLowerCase();
         return attendance.filter((record) => {
-            const userId = typeof record.userId === "object"
-                ? (record.userId?.name || record.userId?.email || "").toLowerCase()
-                : String(record.userId || "").toLowerCase();
+            let userId = "";
+            if (typeof record.userId === "object" && record.userId !== null) {
+                // Check if it's a populated object with name/email
+                if ("name" in record.userId || "email" in record.userId) {
+                    userId = ((record.userId as { name?: string; email?: string }).name || 
+                             (record.userId as { name?: string; email?: string }).email || 
+                             "").toLowerCase();
+                } else {
+                    // It's an ObjectId
+                    userId = String(record.userId).toLowerCase();
+                }
+            } else {
+                userId = String(record.userId || "").toLowerCase();
+            }
             
             return userId.includes(search);
         });
