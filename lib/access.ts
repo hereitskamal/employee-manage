@@ -9,7 +9,7 @@ export type { UserRole };
  * Route access definitions
  * Maps route patterns to allowed roles
  */
-export const ROUTE_ACCESS: Record<string, UserRole[]> = {
+export const ROUTE_ACCESS: Record<string, string[]> = {
   // Admin-only routes
   "/dashboard/admin": ["admin"],
   "/dashboard/employees": ["admin", "manager"],
@@ -207,7 +207,7 @@ export function canViewAllAttendance(role: UserRole | undefined): boolean {
 /**
  * Get all roles that can access a specific route
  */
-export function getRolesForRoute(route: string): UserRole[] {
+export function getRolesForRoute(route: string): string[] {
   // Check exact match first
   if (ROUTE_ACCESS[route]) {
     return ROUTE_ACCESS[route];
@@ -226,7 +226,7 @@ export function getRolesForRoute(route: string): UserRole[] {
 /**
  * Check if a role is in a list of allowed roles
  */
-export function hasAnyRole(role: UserRole | undefined, allowedRoles: UserRole[]): boolean {
+export function hasAnyRole(role: UserRole | undefined, allowedRoles: string[]): boolean {
   if (!role) return false;
   return allowedRoles.includes(role);
 }
