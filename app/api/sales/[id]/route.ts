@@ -1,12 +1,22 @@
 // app/api/sales/[id]/route.ts
-import { NextResponse, NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { Sale } from "@/models/Sale";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
 import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * GET /api/sales/:id
@@ -14,46 +24,31 @@ import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
  */
 export async function GET(req: NextRequest, context: RouteContext) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const session = await getSession(req);
+        if (!session) return failure("Unauthorized", 401);
 
         const params = await resolveRouteParams(context);
         const id = params.id || "";
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json({ message: "Invalid sale ID" }, { status: 400 });
-        }
+        if (!mongoose.Types.ObjectId.isValid(id)) return failure("Invalid sale ID", 400);
 
         await connectToDB();
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
-
+        const isPrivileged = session.role === "admin" || session.role === "manager";
         const query: Record<string, unknown> = { _id: id };
-        
-        // Employees can only see their own sales
-        if (!isPrivileged) {
-            query.soldBy = new mongoose.Types.ObjectId(session.user.id);
-        }
+        if (!isPrivileged) query.soldBy = new mongoose.Types.ObjectId(session.id);
 
         const sale = await Sale.findOne(query)
             .populate("soldBy", "name email")
             .populate("products.productId", "name brand category modelNo image")
             .lean();
 
-        if (!sale) {
-            return NextResponse.json({ message: "Sale not found" }, { status: 404 });
-        }
+        if (!sale) return failure("Sale not found", 404);
 
-        return NextResponse.json(sale);
+        return success({ sale });
     } catch (error) {
         console.error("Fetch sale error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch sale" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch sale", 500);
     }
 }
 
@@ -63,17 +58,13 @@ export async function GET(req: NextRequest, context: RouteContext) {
  */
 export async function PUT(req: NextRequest, context: RouteContext) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const session = await getSession(req);
+        if (!session) return failure("Unauthorized", 401);
 
         const params = await resolveRouteParams(context);
         const id = params.id || "";
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json({ message: "Invalid sale ID" }, { status: 400 });
-        }
+        if (!mongoose.Types.ObjectId.isValid(id)) return failure("Invalid sale ID", 400);
 
         const body = await req.json();
         const { products, saleDate, status } = body;
@@ -81,26 +72,20 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         await connectToDB();
 
         const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
+            session.role === "admin" || session.role === "manager";
 
         const query: Record<string, unknown> = { _id: id };
         
         // Employees can only update their own sales
         if (!isPrivileged) {
-            query.soldBy = new mongoose.Types.ObjectId(session.user.id);
+            query.soldBy = new mongoose.Types.ObjectId(session.id);
         }
 
         const sale = await Sale.findOne(query);
-        if (!sale) {
-            return NextResponse.json({ message: "Sale not found" }, { status: 404 });
-        }
+        if (!sale) return failure("Sale not found", 404);
 
-        // Only allow status updates for non-privileged users
         if (!isPrivileged && status && status !== sale.status) {
-            return NextResponse.json(
-                { message: "You can only update status of your own sales" },
-                { status: 403 }
-            );
+            return failure("You can only update status of your own sales", 403);
         }
 
         // Track status change for stock management
@@ -139,15 +124,10 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
                 if (!productDoc) {
                     const productExists = await Product.findById(productId);
-                    if (!productExists) {
-                        return NextResponse.json(
-                            { message: `Product not found` },
-                            { status: 404 }
-                        );
-                    }
-                    return NextResponse.json(
-                        { message: `Insufficient stock for product. Available: ${productExists.stock}, Requested: ${product.quantity}` },
-                        { status: 400 }
+                    if (!productExists) return failure("Product not found", 404);
+                    return failure(
+                        `Insufficient stock for product. Available: ${productExists.stock}, Requested: ${product.quantity}`,
+                        400
                     );
                 }
             }
@@ -165,10 +145,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
         if (products && Array.isArray(products) && products.length > 0) {
             // Recalculate if products are updated (admin/manager only)
             if (!isPrivileged) {
-                return NextResponse.json(
-                    { message: "Only admins and managers can update products" },
-                    { status: 403 }
-                );
+                return failure("Only admins and managers can update products", 403);
             }
 
             // Store old products for stock restoration
@@ -179,10 +156,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
             let totalAmount = 0;
             for (const product of products) {
                 if (!product.productId || !product.quantity || product.price == null) {
-                    return NextResponse.json(
-                        { message: "Each product must have productId, quantity, and price" },
-                        { status: 400 }
-                    );
+                    return failure("Each product must have productId, quantity, and price", 400);
                 }
                 totalAmount += product.quantity * product.price;
             }
@@ -195,10 +169,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
                     const productDoc = await Product.findById(productId);
                     
                     if (!productDoc) {
-                        return NextResponse.json(
-                            { message: `Product ${product.productId} not found` },
-                            { status: 404 }
-                        );
+                        return failure(`Product ${product.productId} not found`, 404);
                     }
 
                     // Calculate net quantity change for this product
@@ -209,9 +180,9 @@ export async function PUT(req: NextRequest, context: RouteContext) {
                     const netQuantityChange = product.quantity - oldQuantity;
 
                     if (netQuantityChange > 0 && productDoc.stock < netQuantityChange) {
-                        return NextResponse.json(
-                            { message: `Insufficient stock for product ${productDoc.name}. Available: ${productDoc.stock}, Additional needed: ${netQuantityChange}` },
-                            { status: 400 }
+                        return failure(
+                            `Insufficient stock for product ${productDoc.name}. Available: ${productDoc.stock}, Additional needed: ${netQuantityChange}`,
+                            400
                         );
                     }
                 }
@@ -248,7 +219,7 @@ export async function PUT(req: NextRequest, context: RouteContext) {
             }
         }
 
-        sale.updatedBy = session.user.id ? new mongoose.Types.ObjectId(session.user.id) : undefined;
+        sale.updatedBy = session.id ? new mongoose.Types.ObjectId(session.id) : undefined;
         await sale.save();
 
         const updatedSale = await Sale.findById(sale._id)
@@ -256,16 +227,10 @@ export async function PUT(req: NextRequest, context: RouteContext) {
             .populate("products.productId", "name brand category modelNo")
             .lean();
 
-        return NextResponse.json({
-            sale: updatedSale,
-            message: "Sale updated successfully",
-        });
+        return success({ sale: updatedSale });
     } catch (error) {
         console.error("Update sale error:", error);
-        return NextResponse.json(
-            { message: "Failed to update sale" },
-            { status: 500 }
-        );
+        return failure("Failed to update sale", 500);
     }
 }
 
@@ -275,37 +240,22 @@ export async function PUT(req: NextRequest, context: RouteContext) {
  */
 export async function DELETE(req: NextRequest, context: RouteContext) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const session = await getSession(req);
+        if (!session) return failure("Unauthorized", 401);
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
-
-        if (!isPrivileged) {
-            return NextResponse.json(
-                { message: "Only admins and managers can delete sales" },
-                { status: 403 }
-            );
-        }
+        const isPrivileged = session.role === "admin" || session.role === "manager";
+        if (!isPrivileged) return failure("Only admins and managers can delete sales", 403);
 
         const params = await resolveRouteParams(context);
         const id = params.id || "";
 
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json({ message: "Invalid sale ID" }, { status: 400 });
-        }
+        if (!mongoose.Types.ObjectId.isValid(id)) return failure("Invalid sale ID", 400);
 
         await connectToDB();
 
         const sale = await Sale.findById(id);
-        if (!sale) {
-            return NextResponse.json({ message: "Sale not found" }, { status: 404 });
-        }
+        if (!sale) return failure("Sale not found", 404);
 
-        // Restore product stock only for completed sales
-        // Stock is only deducted for completed sales, so only restore for completed sales
         if (sale.status === "completed") {
             for (const product of sale.products) {
                 await Product.findByIdAndUpdate(product.productId, {
@@ -316,13 +266,10 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
 
         await Sale.findByIdAndDelete(id);
 
-        return NextResponse.json({ message: "Sale deleted successfully" });
+        return success({ message: "Sale deleted successfully" });
     } catch (error) {
         console.error("Delete sale error:", error);
-        return NextResponse.json(
-            { message: "Failed to delete sale" },
-            { status: 500 }
-        );
+        return failure("Failed to delete sale", 500);
     }
 }
 

@@ -1,10 +1,20 @@
 // app/api/sales/stats/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { Sale } from "@/models/Sale";
 import mongoose from "mongoose";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * GET /api/sales/stats
@@ -12,14 +22,9 @@ import mongoose from "mongoose";
  */
 export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
-        if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+        if (!session) return failure("Unauthorized", 401);
 
         await connectToDB();
 
@@ -28,7 +33,7 @@ export async function GET(req: Request) {
         const endDate = searchParams.get("endDate");
 
         const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
+            session.role === "admin" || session.role === "manager";
 
         // Build date filter
         const dateFilter: Record<string, unknown> = {};
@@ -52,7 +57,7 @@ export async function GET(req: Request) {
 
         // Role-based filtering
         if (!isPrivileged) {
-            baseQuery.soldBy = new mongoose.Types.ObjectId(session.user.id);
+            baseQuery.soldBy = new mongoose.Types.ObjectId(session.id);
         }
 
         // Today's stats
@@ -138,7 +143,7 @@ export async function GET(req: Request) {
             ]),
         ]);
 
-        return NextResponse.json({
+        return success({
             today: {
                 revenue: todayStats[0]?.revenue || 0,
                 count: todayStats[0]?.count || 0,
@@ -160,10 +165,7 @@ export async function GET(req: Request) {
 
     } catch (error) {
         console.error("Sales stats error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch sales stats" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch sales stats", 500);
     }
 }
 

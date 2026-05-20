@@ -1,10 +1,10 @@
 // app/api/sales/analysis/route.ts
-import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { Sale } from "@/models/Sale";
 import mongoose from "mongoose";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * GET /api/sales/analysis
@@ -20,12 +20,7 @@ export async function GET(req: Request) {
     try {
         const session = await getServerSession(authOptions);
 
-        if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+        if (!session) return failure("Unauthorized", 401);
 
         await connectToDB();
 
@@ -204,24 +199,17 @@ export async function GET(req: Request) {
             },
         ]);
 
-        return NextResponse.json({
+        return success({
             revenueTrends,
             topProducts,
             salesByEmployee,
             salesByCategory,
-            stats: stats[0] || {
-                totalRevenue: 0,
-                totalSales: 0,
-                averageSale: 0,
-            },
+            stats: stats[0] || { totalRevenue: 0, totalSales: 0, averageSale: 0 },
         });
 
     } catch (error) {
         console.error("Sales analysis error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch sales analysis" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch sales analysis", 500);
     }
 }
 

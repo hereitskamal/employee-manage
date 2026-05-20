@@ -1,10 +1,20 @@
 // app/api/products/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * =========================================================
@@ -16,33 +26,22 @@ import mongoose from "mongoose";
  *  - employee        → limited details (hide purchase/distributor rates)
  * =========================================================
  */
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
-        // Must be logged in
-        if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+        if (!session) return failure("Unauthorized", 401);
 
         await connectToDB();
 
         const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
+            session.role === "admin" || session.role === "manager";
 
         const products = await Product.find()
             .populate("createdBy", "name email")
             .sort({ createdAt: -1 })
             .lean();
 
-        /**
-         * ---------------------------------------------------------
-         * Limit pricing visibility for non-admin/manager roles
-         * ---------------------------------------------------------
-         */
         if (!isPrivileged) {
             for (const p of products) {
                 const product = p as Record<string, unknown>;
@@ -51,15 +50,11 @@ export async function GET() {
             }
         }
 
-        return NextResponse.json(products);
+        return success({ products });
 
     } catch (error) {
         console.error("Fetch products error:", error);
-
-        return NextResponse.json(
-            { message: "Failed to fetch products" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch products", 500);
     }
 }
 
@@ -83,7 +78,7 @@ export async function GET() {
  */
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
         /**
          * ---------------------------------------------------------
@@ -92,12 +87,9 @@ export async function POST(req: Request) {
          */
         if (
             !session ||
-            (session.user.role !== "admin" && session.user.role !== "manager")
+            (session.role !== "admin" && session.role !== "manager")
         ) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
+            return failure("Unauthorized", 401);
         }
 
         const body = await req.json();
@@ -108,6 +100,12 @@ export async function POST(req: Request) {
             modelNo,
             modelYear,
             image,
+            images,
+            description,
+            sku,
+            isActive,
+            weight,
+            dimensions,
             purchaseRate,
             distributorRate,
             minSaleRate,
@@ -123,13 +121,7 @@ export async function POST(req: Request) {
          * ---------------------------------------------------------
          */
         if (!name || !category || !brand || !modelNo || stock == null || minSaleRate == null) {
-            return NextResponse.json(
-                {
-                    message:
-                        "Name, category, brand, model no, stock and min sale rate are required",
-                },
-                { status: 400 }
-            );
+            return failure("Name, category, brand, model no, stock and min sale rate are required", 400);
         }
 
         await connectToDB();
@@ -146,7 +138,18 @@ export async function POST(req: Request) {
             brand: brand.trim(),
             modelNo: modelNo.trim(),
             modelYear: modelYear ? Number(modelYear) : undefined,
-            image,
+            image: image || undefined,
+            images: images && Array.isArray(images) && images.length > 0 ? images.filter((img: string) => img && img.trim()) : undefined,
+            description: description?.trim() || undefined,
+            sku: sku?.trim() || undefined,
+            isActive: isActive !== undefined ? Boolean(isActive) : true,
+            weight: weight != null ? Number(weight) : undefined,
+            dimensions: dimensions && (dimensions.length != null || dimensions.width != null || dimensions.height != null) ? {
+                length: dimensions.length != null ? Number(dimensions.length) : undefined,
+                width: dimensions.width != null ? Number(dimensions.width) : undefined,
+                height: dimensions.height != null ? Number(dimensions.height) : undefined,
+                unit: dimensions.unit || "cm",
+            } : undefined,
             purchaseRate: purchaseRate != null ? Number(purchaseRate) : undefined,
             distributorRate: distributorRate != null ? Number(distributorRate) : undefined,
             minSaleRate: Number(minSaleRate),
@@ -154,20 +157,13 @@ export async function POST(req: Request) {
             starRating: starRating != null ? Number(starRating) : undefined,
             criticalSellScore: criticalSellScore != null ? Number(criticalSellScore) : undefined,
             stock: Number(stock),
-            createdBy: session.user.id ? new mongoose.Types.ObjectId(session.user.id) : undefined,
+            createdBy: session.id ? new mongoose.Types.ObjectId(session.id) : undefined,
         });
 
-        return NextResponse.json(
-            { product, message: "Product created successfully" },
-            { status: 201 }
-        );
+        return success({ product }, 201);
 
     } catch (error) {
         console.error("Create product error:", error);
-
-        return NextResponse.json(
-            { message: "Failed to create product" },
-            { status: 500 }
-        );
+        return failure("Failed to create product", 500);
     }
 }

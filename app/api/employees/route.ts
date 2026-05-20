@@ -1,7 +1,16 @@
 // app/api/employees/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { User } from "@/models/User";
 import { canManageEmployees } from "@/lib/access";
@@ -11,7 +20,8 @@ import { hash } from "bcryptjs";
 import mongoose from "mongoose";
 import { employeeCreateSchema, formatValidationError } from "@/lib/validators";
 import { ZodError } from "zod";
-import { logAudit, getUserIdFromSession } from "@/lib/audit";
+import { logAudit } from "@/lib/audit";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * ---------------------------------------------------------
@@ -52,16 +62,12 @@ const transporter = nodemailer.createTransport({
  * Fetch list of all employees (Admin only)
  * =========================================================
  */
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
-        // Authorization check
-        if (!session || !canManageEmployees(session.user.role)) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
+        if (!session || !canManageEmployees(session.role)) {
+            return failure("Unauthorized", 401);
         }
 
         await connectToDB();
@@ -70,14 +76,11 @@ export async function GET() {
             .populate("createdBy", "name email")
             .sort({ createdAt: -1 });
 
-        return NextResponse.json(employees);
+        return success({ employees });
 
     } catch (error) {
         console.error("Fetch employees error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch employees" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch employees", 500);
     }
 }
 
@@ -97,14 +100,10 @@ export async function GET() {
  */
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
-        // Authorization check
-        if (!session || !canManageEmployees(session.user.role)) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
+        if (!session || !canManageEmployees(session.role)) {
+            return failure("Unauthorized", 401);
         }
 
         const body = await req.json();
@@ -119,15 +118,9 @@ export async function POST(req: Request) {
             validatedData = employeeCreateSchema.parse(body);
         } catch (error) {
             if (error instanceof ZodError) {
-                return NextResponse.json(
-                    { message: formatValidationError(error) },
-                    { status: 400 }
-                );
+                return failure(formatValidationError(error), 400, "VALIDATION_ERROR");
             }
-            return NextResponse.json(
-                { message: "Invalid request data" },
-                { status: 400 }
-            );
+            return failure("Invalid request data", 400);
         }
 
         const {
@@ -153,10 +146,7 @@ export async function POST(req: Request) {
          */
         const existing = await User.findOne({ email: email.toLowerCase() });
         if (existing) {
-            return NextResponse.json(
-                { message: "User with this email already exists" },
-                { status: 409 }
-            );
+            return failure("User with this email already exists", 409, "EMAIL_CONFLICT");
         }
 
         /**
@@ -179,8 +169,8 @@ export async function POST(req: Request) {
          * ---------------------------------------------------------
          */
         // Only admin can set role, default to "employee" for others
-        const employeeRole = (session?.user?.role === "admin" && role && role !== "admin") 
-            ? role 
+        const employeeRole = (session?.role === "admin" && role && role !== "admin")
+            ? role
             : "employee";
 
         const employee = await User.create({
@@ -197,7 +187,7 @@ export async function POST(req: Request) {
             age,
             performance,
             password: hashedPassword,
-            createdBy: session?.user?.id ? new mongoose.Types.ObjectId(session.user.id) : undefined,
+            createdBy: session?.id ? new mongoose.Types.ObjectId(session.id) : undefined,
             mustSetPassword: false,
             isProfileComplete: false,
         });
@@ -236,7 +226,7 @@ export async function POST(req: Request) {
          * ---------------------------------------------------------
          */
         logAudit({
-            userId: getUserIdFromSession(session) || employee._id.toString(),
+            userId: session?.id || employee._id.toString(),
             action: "create",
             resource: "employee",
             resourceId: employee._id,
@@ -253,16 +243,10 @@ export async function POST(req: Request) {
          * 8. Success Response
          * ---------------------------------------------------------
          */
-        return NextResponse.json(
-            { employee, message: "Employee created & email sent successfully" },
-            { status: 201 }
-        );
+        return success({ employee }, 201);
 
     } catch (error) {
         console.error("Create employee error:", error);
-        return NextResponse.json(
-            { message: "Failed to create employee" },
-            { status: 500 }
-        );
+        return failure("Failed to create employee", 500);
     }
 }

@@ -1,76 +1,63 @@
 // app/api/attendance/[id]/route.ts
-import { NextResponse, NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { Attendance } from "@/models/Attendance";
 import mongoose from "mongoose";
 import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
+import { success, failure } from "@/lib/apiResponse";
 
-/**
- * GET /api/attendance/:id
- * Fetch a single attendance record by ID
- */
 export async function GET(req: NextRequest, context: RouteContext) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const session = await getSession(req);
+        if (!session) return failure("Unauthorized", 401);
 
         const params = await resolveRouteParams(context);
         const id = params.id || "";
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json({ message: "Invalid attendance ID" }, { status: 400 });
+            return failure("Invalid attendance ID", 400);
         }
 
         await connectToDB();
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
-
+        const isPrivileged = session.role === "admin" || session.role === "manager";
         const query: Record<string, unknown> = { _id: id };
-        
-        // Employees can only see their own attendance
-        if (!isPrivileged) {
-            query.userId = new mongoose.Types.ObjectId(session.user.id);
-        }
+        if (!isPrivileged) query.userId = new mongoose.Types.ObjectId(session.id);
 
         const attendance = await Attendance.findOne(query)
             .populate("userId", "name email role")
             .lean();
 
-        if (!attendance) {
-            return NextResponse.json({ message: "Attendance record not found" }, { status: 404 });
-        }
+        if (!attendance) return failure("Attendance record not found", 404);
 
-        return NextResponse.json(attendance);
+        return success({ attendance });
     } catch (error) {
         console.error("Fetch attendance error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch attendance" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch attendance", 500);
     }
 }
 
-/**
- * PUT /api/attendance/:id
- * Update attendance record (e.g., add logout time)
- */
 export async function PUT(req: NextRequest, context: RouteContext) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const session = await getSession(req);
+        if (!session) return failure("Unauthorized", 401);
 
         const params = await resolveRouteParams(context);
         const id = params.id || "";
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json({ message: "Invalid attendance ID" }, { status: 400 });
+            return failure("Invalid attendance ID", 400);
         }
 
         const body = await req.json();
@@ -78,37 +65,23 @@ export async function PUT(req: NextRequest, context: RouteContext) {
 
         await connectToDB();
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
-
+        const isPrivileged = session.role === "admin" || session.role === "manager";
         const query: Record<string, unknown> = { _id: id };
-        
-        // Employees can only update their own attendance
-        if (!isPrivileged) {
-            query.userId = new mongoose.Types.ObjectId(session.user.id);
-        }
+        if (!isPrivileged) query.userId = new mongoose.Types.ObjectId(session.id);
 
         const attendance = await Attendance.findOne(query);
-        if (!attendance) {
-            return NextResponse.json({ message: "Attendance record not found" }, { status: 404 });
-        }
+        if (!attendance) return failure("Attendance record not found", 404);
 
-        // Update fields
         if (logoutTime !== undefined) {
             attendance.logoutTime = logoutTime ? new Date(logoutTime) : null;
-            // Recalculate duration
             if (attendance.logoutTime && attendance.loginTime) {
                 attendance.duration = Math.round(
                     (attendance.logoutTime.getTime() - attendance.loginTime.getTime()) / (1000 * 60)
                 );
             }
         }
-        if (status) {
-            attendance.status = status;
-        }
-        if (notes !== undefined) {
-            attendance.notes = notes;
-        }
+        if (status) attendance.status = status;
+        if (notes !== undefined) attendance.notes = notes;
 
         await attendance.save();
 
@@ -116,67 +89,38 @@ export async function PUT(req: NextRequest, context: RouteContext) {
             .populate("userId", "name email role")
             .lean();
 
-        return NextResponse.json({
-            attendance: updated,
-            message: "Attendance updated successfully",
-        });
+        return success({ attendance: updated });
     } catch (error) {
         console.error("Update attendance error:", error);
-        return NextResponse.json(
-            { message: "Failed to update attendance" },
-            { status: 500 }
-        );
+        return failure("Failed to update attendance", 500);
     }
 }
 
-/**
- * DELETE /api/attendance/:id
- * Delete an attendance record (Admin/Manager only)
- */
 export async function DELETE(req: NextRequest, context: RouteContext) {
     try {
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-        }
+        const session = await getSession(req);
+        if (!session) return failure("Unauthorized", 401);
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
-        
+        const isPrivileged = session.role === "admin" || session.role === "manager";
         if (!isPrivileged) {
-            return NextResponse.json(
-                { message: "Only admins and managers can delete attendance records" },
-                { status: 403 }
-            );
+            return failure("Only admins and managers can delete attendance records", 403);
         }
 
         const params = await resolveRouteParams(context);
         const id = params.id || "";
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
-            return NextResponse.json({ message: "Invalid attendance ID" }, { status: 400 });
+            return failure("Invalid attendance ID", 400);
         }
 
         await connectToDB();
 
         const attendance = await Attendance.findByIdAndDelete(id);
+        if (!attendance) return failure("Attendance record not found", 404);
 
-        if (!attendance) {
-            return NextResponse.json(
-                { message: "Attendance record not found" },
-                { status: 404 }
-            );
-        }
-
-        return NextResponse.json({
-            message: "Attendance record deleted successfully",
-        });
+        return success({ message: "Attendance record deleted successfully" });
     } catch (error) {
         console.error("Delete attendance error:", error);
-        return NextResponse.json(
-            { message: "Failed to delete attendance" },
-            { status: 500 }
-        );
+        return failure("Failed to delete attendance", 500);
     }
 }
-

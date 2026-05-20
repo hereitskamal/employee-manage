@@ -1,7 +1,16 @@
 // app/api/attendance/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { Attendance } from "@/models/Attendance";
 import mongoose from "mongoose";
@@ -18,7 +27,7 @@ import { isPrivileged } from "@/lib/access";
  */
 export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
         if (!session) {
             return failure("Unauthorized", 401);
@@ -34,7 +43,7 @@ export async function GET(req: Request) {
         const limit = parseInt(searchParams.get("limit") || "50");
         const page = parseInt(searchParams.get("page") || "1");
 
-        const hasPrivilegedAccess = isPrivileged(session.user.role);
+        const hasPrivilegedAccess = isPrivileged(session.role);
 
         // Build query
         const query: Record<string, unknown> = {};
@@ -42,7 +51,7 @@ export async function GET(req: Request) {
         // Role-based filtering
         if (!hasPrivilegedAccess) {
             // Employees can only see their own attendance
-            query.userId = new mongoose.Types.ObjectId(session.user.id);
+            query.userId = new mongoose.Types.ObjectId(session.id);
         } else if (userId) {
             query.userId = new mongoose.Types.ObjectId(userId);
         }
@@ -101,13 +110,10 @@ export async function GET(req: Request) {
  */
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
         if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
+            return failure("Unauthorized", 401);
         }
 
         const body = await req.json();
@@ -115,26 +121,17 @@ export async function POST(req: Request) {
 
         await connectToDB();
 
-        const hasPrivilegedAccess = isPrivileged(session.user.role);
+        const hasPrivilegedAccess = isPrivileged(session.role);
 
-        // Use session user ID if not provided
-        let targetUserId = userId || session.user.id;
+        let targetUserId = userId || session.id;
         if (!targetUserId) {
-            return NextResponse.json(
-                { message: "User ID is required" },
-                { status: 400 }
-            );
+            return failure("User ID is required", 400);
         }
 
-        // Non-privileged users can only create attendance for themselves
-        if (!hasPrivilegedAccess && targetUserId !== session.user.id) {
-            return NextResponse.json(
-                { message: "You can only create attendance records for yourself" },
-                { status: 403 }
-            );
+        if (!hasPrivilegedAccess && targetUserId !== session.id) {
+            return failure("You can only create attendance records for yourself", 403);
         }
 
-        // Check if there's already an attendance record for today
         const today = date ? new Date(date) : new Date();
         today.setHours(0, 0, 0, 0);
         const todayEnd = new Date(today);
@@ -146,32 +143,22 @@ export async function POST(req: Request) {
         });
 
         if (existingAttendance) {
-            // Update existing record if login time is not set
             if (!existingAttendance.loginTime) {
                 existingAttendance.loginTime = loginTime ? new Date(loginTime) : new Date();
                 existingAttendance.status = "present";
-                if (notes) {
-                    existingAttendance.notes = notes;
-                }
+                if (notes) existingAttendance.notes = notes;
                 await existingAttendance.save();
 
                 const populated = await Attendance.findById(existingAttendance._id)
                     .populate("userId", "name email role")
                     .lean();
 
-                return NextResponse.json(
-                    { attendance: populated, message: "Attendance updated successfully" },
-                    { status: 200 }
-                );
+                return success({ attendance: populated });
             } else {
-                return NextResponse.json(
-                    { message: "Attendance record already exists for today" },
-                    { status: 400 }
-                );
+                return failure("Attendance record already exists for today", 400, "ALREADY_EXISTS");
             }
         }
 
-        // Create new attendance record
         const attendance = await Attendance.create({
             userId: new mongoose.Types.ObjectId(targetUserId),
             loginTime: loginTime ? new Date(loginTime) : new Date(),
@@ -184,17 +171,11 @@ export async function POST(req: Request) {
             .populate("userId", "name email role")
             .lean();
 
-        return NextResponse.json(
-            { attendance: populated, message: "Attendance created successfully" },
-            { status: 201 }
-        );
+        return success({ attendance: populated }, 201);
 
     } catch (error) {
         console.error("Create attendance error:", error);
-        return NextResponse.json(
-            { message: "Failed to create attendance" },
-            { status: 500 }
-        );
+        return failure("Failed to create attendance", 500);
     }
 }
 

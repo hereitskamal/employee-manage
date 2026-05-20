@@ -1,12 +1,22 @@
 // app/api/sales/route.ts
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getSession } from "@/lib/getSession";
+
+const CORS_HEADERS = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
 import { connectToDB } from "@/lib/db";
 import { Sale } from "@/models/Sale";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
 import { isPrivileged } from "@/lib/access";
+import { success, failure } from "@/lib/apiResponse";
 
 /**
  * GET /api/sales
@@ -18,14 +28,9 @@ import { isPrivileged } from "@/lib/access";
  */
 export async function GET(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
-        if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+        if (!session) return failure("Unauthorized", 401);
 
         await connectToDB();
 
@@ -39,37 +44,25 @@ export async function GET(req: Request) {
         const page = parseInt(searchParams.get("page") || "1");
 
         const isPrivilegedUser =
-            session.user.role === "admin" || session.user.role === "manager";
+            session.role === "admin" || session.role === "manager";
 
-        // Build query
         const query: Record<string, unknown> = {};
 
-        // Role-based filtering
         if (!isPrivilegedUser) {
-            // Employees can only see their own sales
-            if (!session.user.id || !mongoose.Types.ObjectId.isValid(session.user.id)) {
-                return NextResponse.json(
-                    { message: "Invalid user ID" },
-                    { status: 400 }
-                );
+            if (!session.id || !mongoose.Types.ObjectId.isValid(session.id)) {
+                return failure("Invalid user ID", 400);
             }
-            query.soldBy = new mongoose.Types.ObjectId(session.user.id);
+            query.soldBy = new mongoose.Types.ObjectId(session.id);
         } else if (employeeId) {
             if (!mongoose.Types.ObjectId.isValid(employeeId)) {
-                return NextResponse.json(
-                    { message: "Invalid employee ID" },
-                    { status: 400 }
-                );
+                return failure("Invalid employee ID", 400);
             }
             query.soldBy = new mongoose.Types.ObjectId(employeeId);
         }
 
-        // Date range filter
         if (startDate || endDate) {
             const dateFilter: { $gte?: Date; $lte?: Date } = {};
-            if (startDate) {
-                dateFilter.$gte = new Date(startDate);
-            }
+            if (startDate) dateFilter.$gte = new Date(startDate);
             if (endDate) {
                 const end = new Date(endDate);
                 end.setHours(23, 59, 59, 999);
@@ -78,15 +71,11 @@ export async function GET(req: Request) {
             query.saleDate = dateFilter;
         }
 
-        // Product filter
         if (productId) {
             query["products.productId"] = new mongoose.Types.ObjectId(productId);
         }
 
-        // Status filter
-        if (status) {
-            query.status = status;
-        }
+        if (status) query.status = status;
 
         const skip = (page - 1) * limit;
 
@@ -100,7 +89,7 @@ export async function GET(req: Request) {
 
         const total = await Sale.countDocuments(query);
 
-        return NextResponse.json({
+        return success({
             sales,
             pagination: {
                 total,
@@ -112,10 +101,7 @@ export async function GET(req: Request) {
 
     } catch (error) {
         console.error("Fetch sales error:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch sales" },
-            { status: 500 }
-        );
+        return failure("Failed to fetch sales", 500);
     }
 }
 
@@ -130,59 +116,35 @@ export async function GET(req: Request) {
  */
 export async function POST(req: Request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await getSession(req);
 
-        if (!session) {
-            return NextResponse.json(
-                { message: "Unauthorized" },
-                { status: 401 }
-            );
-        }
+        if (!session) return failure("Unauthorized", 401);
 
         const body = await req.json();
         const { products, soldBy, saleDate, status } = body;
 
         const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
+            session.role === "admin" || session.role === "manager";
 
-        // Validate required fields
         if (!products || !Array.isArray(products) || products.length === 0) {
-            return NextResponse.json(
-                { message: "At least one product is required" },
-                { status: 400 }
-            );
+            return failure("At least one product is required", 400);
         }
 
-        // Determine the soldBy user ID
-        let targetSoldBy = soldBy || session.user.id;
+        let targetSoldBy = soldBy || session.id;
         if (!targetSoldBy) {
-            return NextResponse.json(
-                { message: "soldBy (employee ID) is required" },
-                { status: 400 }
-            );
+            return failure("soldBy (employee ID) is required", 400);
         }
 
-        // Non-privileged users can only create sales for themselves
-        if (!isPrivileged && targetSoldBy !== session.user.id) {
-            return NextResponse.json(
-                { message: "You can only create sales records for yourself" },
-                { status: 403 }
-            );
+        if (!isPrivileged && targetSoldBy !== session.id) {
+            return failure("You can only create sales records for yourself", 403);
         }
 
-        // Validate products array
         for (const product of products) {
             if (!product.productId || !product.quantity || product.price == null) {
-                return NextResponse.json(
-                    { message: "Each product must have productId, quantity, and price" },
-                    { status: 400 }
-                );
+                return failure("Each product must have productId, quantity, and price", 400);
             }
             if (product.quantity <= 0) {
-                return NextResponse.json(
-                    { message: "Product quantity must be greater than 0" },
-                    { status: 400 }
-                );
+                return failure("Product quantity must be greater than 0", 400);
             }
         }
 
@@ -213,18 +175,13 @@ export async function POST(req: Request) {
                 );
 
                 if (!productDoc) {
-                    // Check if product exists
                     const productExists = await Product.findById(productId);
                     if (!productExists) {
-                        return NextResponse.json(
-                            { message: `Product ${product.productId} not found` },
-                            { status: 404 }
-                        );
+                        return failure(`Product ${product.productId} not found`, 404);
                     }
-                    // Product exists but insufficient stock
-                    return NextResponse.json(
-                        { message: `Insufficient stock for product ${productExists.name}. Available: ${productExists.stock}, Requested: ${product.quantity}` },
-                        { status: 400 }
+                    return failure(
+                        `Insufficient stock for product ${productExists.name}. Available: ${productExists.stock}, Requested: ${product.quantity}`,
+                        400
                     );
                 }
 
@@ -243,10 +200,7 @@ export async function POST(req: Request) {
                 const productDoc = await Product.findById(productId);
 
                 if (!productDoc) {
-                    return NextResponse.json(
-                        { message: `Product ${product.productId} not found` },
-                        { status: 404 }
-                    );
+                    return failure(`Product ${product.productId} not found`, 404);
                 }
 
                 const subtotal = product.quantity * product.price;
@@ -274,7 +228,7 @@ export async function POST(req: Request) {
             soldBy: new mongoose.Types.ObjectId(targetSoldBy),
             saleDate: saleDate ? new Date(saleDate) : new Date(),
             status: saleStatus,
-            createdBy: session.user.id ? new mongoose.Types.ObjectId(session.user.id) : undefined,
+            createdBy: session.id ? new mongoose.Types.ObjectId(session.id) : undefined,
         });
 
         // Stock was already updated atomically for completed sales above
@@ -286,17 +240,11 @@ export async function POST(req: Request) {
             .populate("products.productId", "name brand category modelNo")
             .lean();
 
-        return NextResponse.json(
-            { sale: populatedSale, message: "Sale created successfully" },
-            { status: 201 }
-        );
+        return success({ sale: populatedSale }, 201);
 
     } catch (error) {
         console.error("Create sale error:", error);
-        return NextResponse.json(
-            { message: "Failed to create sale" },
-            { status: 500 }
-        );
+        return failure("Failed to create sale", 500);
     }
 }
 
