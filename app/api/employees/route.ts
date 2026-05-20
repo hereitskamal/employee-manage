@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 import { connectToDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { canManageEmployees } from "@/lib/access";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 import { hash } from "bcryptjs";
@@ -56,7 +57,7 @@ export async function GET() {
         const session = await getServerSession(authOptions);
 
         // Authorization check
-        if (!session || session.user.role !== "admin") {
+        if (!session || !canManageEmployees(session.user.role)) {
             return NextResponse.json(
                 { message: "Unauthorized" },
                 { status: 401 }
@@ -99,7 +100,7 @@ export async function POST(req: Request) {
         const session = await getServerSession(authOptions);
 
         // Authorization check
-        if (!session || session.user.role !== "admin") {
+        if (!session || !canManageEmployees(session.user.role)) {
             return NextResponse.json(
                 { message: "Unauthorized" },
                 { status: 401 }
@@ -140,6 +141,7 @@ export async function POST(req: Request) {
             location,
             age,
             performance,
+            role,
         } = validatedData;
 
         await connectToDB();
@@ -176,10 +178,15 @@ export async function POST(req: Request) {
          * 5. Create Employee Record
          * ---------------------------------------------------------
          */
+        // Only admin can set role, default to "employee" for others
+        const employeeRole = (session?.user?.role === "admin" && role && role !== "admin") 
+            ? role 
+            : "employee";
+
         const employee = await User.create({
             name,
             email: email.toLowerCase(),
-            role: "employee",
+            role: employeeRole,
             provider: "credentials",
             phone,
             department,

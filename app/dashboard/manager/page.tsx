@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import PeopleIcon from "@mui/icons-material/People";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export default function ManagerDashboard() {
     const router = useRouter();
@@ -38,7 +39,7 @@ export default function ManagerDashboard() {
                                         Team Revenue
                                     </Typography>
                                     <Typography variant="h5">
-                                        ₹{stats?.month.revenue.toLocaleString() || 0}
+                                        {formatCurrency(stats?.month.revenue || 0)}
                                     </Typography>
                                     <Typography variant="caption" color="text.secondary">
                                         This Month

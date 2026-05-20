@@ -6,6 +6,7 @@ import { connectToDB } from "@/lib/db";
 import { Sale } from "@/models/Sale";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
+import { isPrivileged } from "@/lib/access";
 
 /**
  * GET /api/sales
@@ -37,17 +38,29 @@ export async function GET(req: Request) {
         const limit = parseInt(searchParams.get("limit") || "50");
         const page = parseInt(searchParams.get("page") || "1");
 
-        const isPrivileged =
+        const isPrivilegedUser =
             session.user.role === "admin" || session.user.role === "manager";
 
         // Build query
         const query: Record<string, unknown> = {};
 
         // Role-based filtering
-        if (!isPrivileged) {
+        if (!isPrivilegedUser) {
             // Employees can only see their own sales
+            if (!session.user.id || !mongoose.Types.ObjectId.isValid(session.user.id)) {
+                return NextResponse.json(
+                    { message: "Invalid user ID" },
+                    { status: 400 }
+                );
+            }
             query.soldBy = new mongoose.Types.ObjectId(session.user.id);
         } else if (employeeId) {
+            if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+                return NextResponse.json(
+                    { message: "Invalid employee ID" },
+                    { status: 400 }
+                );
+            }
             query.soldBy = new mongoose.Types.ObjectId(employeeId);
         }
 

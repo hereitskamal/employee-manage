@@ -1,22 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  TextField,
-  Typography,
-  Stack,
-  Alert,
-  Paper,
-  Divider,
-} from "@mui/material";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import GoogleIcon from "@mui/icons-material/Google";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import CircularProgress from "@mui/material/CircularProgress";
+import { Mail, Lock, Chrome } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -86,172 +76,97 @@ export default function LoginPage() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "radial-gradient(circle at top, #f4f7ff 0, #f8f9fb 40%, #eef1f7 100%)",
-        px: 2,
-        py: 6,
-      }}
-    >
-      <Container maxWidth="xs">
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 6,
-            p: 4,
-            bgcolor: "rgba(255,255,255,0.9)",
-          }}
-        >
-          <Typography variant="h4" fontWeight={700} textAlign="left" mb={0.5}>
-            Welcome back
-          </Typography>
-          <Typography variant="body2" color="text.secondary" textAlign="left" mb={6}>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-gray-50 to-gray-100 px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
+          <h1 className="text-3xl font-bold text-left mb-1">Welcome back</h1>
+          <p className="text-sm text-gray-600 text-left mb-8">
             Log in to manage your employees and dashboard.
-          </Typography>
+          </p>
 
           {formError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formError}
-            </Alert>
+            <div className="mb-6">
+              <Alert severity="error">{formError}</Alert>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Stack spacing={2.2}>
-              <TextField
-                label="Work email"
-                type="email"
-                size="small"
-                fullWidth
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
-                }}
-                error={!!errors.email}
-                helperText={errors.email}
-                InputProps={{
-                  startAdornment: (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mr: 1,
-                        color: "text.secondary",
-                      }}
-                    >
-                      <EmailOutlinedIcon fontSize="small" />
-                    </Box>
-                  ),
-                }}
-              />
-              <TextField
-                label="Password"
-                type="password"
-                size="small"
-                fullWidth
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-                }}
-                error={!!errors.password}
-                helperText={errors.password}
-              />
-
-              <Box display="flex" justifyContent="flex-end">
-                <Button
-                  component="a"
-                  href="/forgot-password"
-                  type="button"
-                  size="small"
-                  sx={{
-                    textTransform: "none",
-                    fontSize: 12,
-                    p: 0,
-                    minWidth: "auto",
-                    background: "transparent",
-                    boxShadow: "none",
-                    color: "primary.main",
-                    "&:hover": { color: "text.secondary", boxShadow: "none", background: "transparent" },
-                  }}
-                >
-                  Forgot password?
-                </Button>
-              </Box>
-
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={loading}
-                sx={{
-                  mt: 0.5,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  py: 1.1,
-                }}
-              >
-                {loading ? (
-                  <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
-                    <CircularProgress size={18} color="inherit" />
-                    <span>Logging in...</span>
-                  </Stack>
-                ) : (
-                  "Log in"
-                )}
-              </Button>
-
-              <Divider sx={{ my: 1.5, fontSize: 12, color: "text.secondary" }}>
-                or continue with
-              </Divider>
-
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={handleGoogleLogin}
-                startIcon={<GoogleIcon />}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  py: 1.05,
-                  borderColor: "rgba(148, 163, 184, 0.6)",
-                  "&:hover": {
-                    borderColor: "primary.main",
-                    backgroundColor: "rgba(37, 99, 235, 0.03)",
-                  },
-                }}
-              >
-                Google
-              </Button>
-            </Stack>
-          </Box>
-
-          <Typography mt={3} textAlign="center" variant="body2" color="text.secondary">
-            Don&apos;t have an account?{" "}
-            <Button
-              variant="text"
-              size="small"
-              onClick={() => router.push("/register")}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                px: 0.3,
-                minWidth: "auto",
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            <Input
+              label="Work email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
               }}
+              error={errors.email}
+              startIcon={<Mail className="w-4 h-4" />}
+              fullWidth
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+              }}
+              error={errors.password}
+              startIcon={<Lock className="w-4 h-4" />}
+              fullWidth
+            />
+
+            <div className="flex justify-end">
+              <a
+                href="/forgot-password"
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                Forgot password?
+              </a>
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              fullWidth
+            >
+              {loading ? "Logging in..." : "Log in"}
+            </Button>
+
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or continue with</span>
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={handleGoogleLogin}
+              startIcon={<Chrome className="w-4 h-4" />}
+              fullWidth
+            >
+              Google
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-gray-600">
+            Don&apos;t have an account?{" "}
+            <button
+              onClick={() => router.push("/register")}
+              className="text-blue-600 hover:text-blue-700 font-semibold"
             >
               Sign up
-            </Button>
-          </Typography>
-        </Paper>
-      </Container>
-    </Box>
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

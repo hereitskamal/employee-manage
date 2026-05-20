@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import SalesTable from "@/components/sales/SalesTable";
 import InventoryIcon from "@mui/icons-material/Inventory";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export default function SPCDashboard() {
     const router = useRouter();
@@ -55,7 +56,7 @@ export default function SPCDashboard() {
                                     <Typography color="text.secondary" gutterBottom>
                                         Total Revenue
                                     </Typography>
-                                    <Typography variant="h5">₹{totalRevenue.toLocaleString()}</Typography>
+                                    <Typography variant="h5">{formatCurrency(totalRevenue)}</Typography>
                                 </Box>
                                 <AttachMoneyIcon sx={{ fontSize: 40, color: "success.main" }} />
                             </Box>

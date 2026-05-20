@@ -13,6 +13,7 @@ import {
   Stack,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import WorkOutlineIcon from "@mui/icons-material/WorkOutline";
 import EmailIcon from "@mui/icons-material/Email";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -21,6 +22,9 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import useEmployee from "@/hooks/useEmployee";
 import { getId } from "@/types/nextjs";
+import { formatCurrency } from "@/lib/utils/currency";
+import EditEmployeeModal from "./EditEmployee";
+import { useState } from "react";
 
 interface EmployeeDrawerProps {
   id: string | null;
@@ -33,7 +37,11 @@ export default function EmployeeDrawer({
   onClose,
   onDeleteSuccess,
 }: EmployeeDrawerProps) {
-  const { employee, loading } = useEmployee(id);
+  const [refreshKey, setRefreshKey] = useState(0);
+  // Use refreshKey to force refetch when employee is updated
+  const employeeId = id ? `${id}?refresh=${refreshKey}` : null;
+  const { employee, loading } = useEmployee(employeeId);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const formatDate = (value?: string | Date) => {
     if (!value) return "-";
@@ -87,6 +95,16 @@ export default function EmployeeDrawer({
       alert(
         "Something went wrong while deleting the employee. Please try again."
       );
+    }
+  };
+
+  const handleEditSuccess = () => {
+    // Force a refetch by updating the refresh key
+    setRefreshKey(prev => prev + 1);
+    setEditModalOpen(false);
+    // Also trigger parent refresh if callback exists
+    if (onDeleteSuccess) {
+      onDeleteSuccess();
     }
   };
 
@@ -232,7 +250,7 @@ export default function EmployeeDrawer({
               <InfoRow
                 icon={<MonetizationOnIcon fontSize="small" />}
                 label="Salary"
-                value={`₹${employee.salary}`}
+                value={formatCurrency(employee.salary)}
               />
               <InfoRow
                 icon={<CalendarTodayIcon fontSize="small" />}
@@ -258,8 +276,19 @@ export default function EmployeeDrawer({
           sx={{
             p: 2,
             bgcolor: "white",
+            display: "flex",
+            gap: 1,
           }}
         >
+          <Button
+            fullWidth
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => setEditModalOpen(true)}
+            sx={{ borderRadius: 2, fontWeight: 600, textTransform: "none" }}
+          >
+            Edit
+          </Button>
           <Button
             fullWidth
             variant="contained"
@@ -267,10 +296,16 @@ export default function EmployeeDrawer({
             onClick={handleDelete}
             sx={{ borderRadius: 2, fontWeight: 600, textTransform: "none" }}
           >
-            Delete Employee
+            Delete
           </Button>
         </Box>
       )}
+      <EditEmployeeModal
+        open={editModalOpen}
+        employeeId={id}
+        onClose={() => setEditModalOpen(false)}
+        onUpdated={handleEditSuccess}
+      />
     </Drawer>
   );
 }

@@ -16,6 +16,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
+import type { UserRole } from "@/lib/roles";
+import { getRolesForRoute } from "@/lib/access";
 
 // Helper function to get role-specific dashboard path
 const getDashboardPath = (role: string | undefined): string => {
@@ -34,49 +36,55 @@ const getDashboardPath = (role: string | undefined): string => {
   }
 };
 
-const navItems = [
+const navItems: Array<{
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  roles: UserRole[];
+  isDynamic?: boolean;
+}> = [
   {
     label: "Dashboard",
     path: "/dashboard",
     icon: LayoutDashboard,
-    roles: ["admin", "manager", "employee", "spc"],
+    roles: getRolesForRoute("/dashboard"),
     isDynamic: true,
   },
   {
     label: "Employees",
     path: "/dashboard/employees",
     icon: Users,
-    roles: ["admin", "manager"],
+    roles: getRolesForRoute("/dashboard/employees"),
   },
   {
     label: "Products",
     path: "/dashboard/products",
     icon: Package,
-    roles: ["admin", "manager", "employee", "spc"],
+    roles: getRolesForRoute("/dashboard/products"),
   },
   {
     label: "Sales",
     path: "/dashboard/sales",
     icon: ShoppingCart,
-    roles: ["admin", "manager", "employee"],
+    roles: getRolesForRoute("/dashboard/sales"),
   },
   {
     label: "Sales Analysis",
     path: "/dashboard/sales/analysis",
     icon: TrendingUp,
-    roles: ["admin", "manager"],
+    roles: getRolesForRoute("/dashboard/sales/analysis"),
   },
   {
     label: "Attendance",
     path: "/dashboard/attendance",
     icon: Clock,
-    roles: ["admin", "manager", "employee", "spc"],
+    roles: getRolesForRoute("/dashboard/attendance"),
   },
   {
     label: "Daily Logs",
     path: "/dashboard/attendance/daily-logs",
     icon: ClipboardList,
-    roles: ["admin"],
+    roles: getRolesForRoute("/dashboard/attendance/daily-logs"),
   },
 ];
 

@@ -1,8 +1,12 @@
 // lib/permissions.ts
+// Permission utilities for user-specific permissions
+// For role-based access control, use lib/access.ts instead
 
-// you can refine Action/Resource types later if you want
-export type Action = "read" | "create" | "update" | "delete" | "manage" | "export";
-export type Resource = string; // "employees", "projects", "attendance", etc.
+// Re-export Action and Resource types from access.ts for consistency
+import type { Action, Resource } from "./access";
+
+// Re-export for backward compatibility
+export type { Action, Resource };
 
 export function buildPermission(resource: Resource, action: Action) {
   return `${resource}:${action}`;

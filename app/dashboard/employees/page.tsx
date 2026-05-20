@@ -17,8 +17,9 @@ import { departments } from "@/data/departments";
 import LoadingState from "@/components/ui/LoadingState";
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
+import { ROLES } from "@/lib/roles";
 
-const AVAILABLE_ROLES = ["employee", "manager", "admin", "helper"];
+const AVAILABLE_ROLES = ROLES;
 
 export default function Home() {
     const {

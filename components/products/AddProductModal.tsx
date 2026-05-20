@@ -1,29 +1,16 @@
 // components/products/AddProductModal.tsx
 "use client";
 
-import {
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
-    TextField,
-    Button,
-    Stack,
-    Typography,
-    InputAdornment,
-    IconButton,
-    Box,
-    CircularProgress,
-    Autocomplete,
-} from "@mui/material";
-import {
-    Save,
-    Close,
-    Inventory2Outlined,
-    StarBorder,
-} from "@mui/icons-material";
 import { FormEvent, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { Save, Package, Star } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Autocomplete } from "@/components/ui/Autocomplete";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { canManageProducts } from "@/lib/access";
+import { getCurrencySymbol } from "@/lib/utils/currency";
 
 interface AddProductModalProps {
     open: boolean;
@@ -64,11 +51,13 @@ export default function AddProductModal({
     onAdded,
 }: AddProductModalProps) {
     const { data: session } = useSession();
-    const isPrivileged =
-        session?.user?.role === "admin" || session?.user?.role === "manager";
+    const isPrivileged = canManageProducts(session?.user?.role);
+    const isAdminOrManager = session?.user?.role === "admin" || session?.user?.role === "manager";
 
     const [loadingSubmit, setLoadingSubmit] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [pendingClose, setPendingClose] = useState(false);
 
     const [form, setForm] = useState({
         name: "",
@@ -85,6 +74,25 @@ export default function AddProductModal({
         criticalSellScore: "",
         stock: "",
     });
+
+    // Check if form has been modified
+    const hasUnsavedChanges = () => {
+        return !!(
+            form.name.trim() ||
+            form.category.trim() ||
+            form.brand.trim() ||
+            form.modelNo.trim() ||
+            form.modelYear.trim() ||
+            form.image.trim() ||
+            form.purchaseRate.trim() ||
+            form.distributorRate.trim() ||
+            form.minSaleRate.trim() ||
+            form.tagRate.trim() ||
+            form.starRating.trim() ||
+            form.criticalSellScore.trim() ||
+            form.stock.trim()
+        );
+    };
 
     useEffect(() => {
         if (open) {
@@ -105,8 +113,32 @@ export default function AddProductModal({
             });
             setErrors({});
             setLoadingSubmit(false);
+            setPendingClose(false);
         }
     }, [open]);
+
+    // Handle close with confirmation
+    const handleClose = () => {
+        if (hasUnsavedChanges() && !loadingSubmit) {
+            setShowConfirmDialog(true);
+            setPendingClose(true);
+        } else {
+            onClose();
+        }
+    };
+
+    // Confirm discard changes
+    const handleConfirmDiscard = () => {
+        setShowConfirmDialog(false);
+        setPendingClose(false);
+        onClose();
+    };
+
+    // Cancel discard
+    const handleCancelDiscard = () => {
+        setShowConfirmDialog(false);
+        setPendingClose(false);
+    };
 
     const handleChange = (field: keyof typeof form, value: string) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -174,6 +206,22 @@ export default function AddProductModal({
             }
 
             onAdded?.();
+            // Reset form state before closing
+            setForm({
+                name: "",
+                category: "",
+                brand: "",
+                modelNo: "",
+                modelYear: "",
+                image: "",
+                purchaseRate: "",
+                distributorRate: "",
+                minSaleRate: "",
+                tagRate: "",
+                starRating: "",
+                criticalSellScore: "",
+                stock: "",
+            });
             onClose();
         } catch (err) {
             console.error("Failed to save product:", err);
@@ -183,310 +231,190 @@ export default function AddProductModal({
         }
     };
 
-    if (!isPrivileged) return null; // no modal if not admin/manager
+    // Only admin and manager can create products (API restriction)
+    if (!isAdminOrManager) return null;
 
     return (
-        <Dialog
-            open={open}
-            onClose={(e, reason) => reason !== "backdropClick" && onClose()}
-            fullWidth
+        <>
+            <ConfirmDialog
+                open={showConfirmDialog}
+                onClose={handleCancelDiscard}
+                onConfirm={handleConfirmDiscard}
+                title="Discard Changes?"
+                message="You have unsaved changes. Are you sure you want to close without saving?"
+                confirmText="Discard"
+                cancelText="Keep Editing"
+                variant="warning"
+            />
+            <Modal
+                open={open && !showConfirmDialog}
+                onClose={handleClose}
+            title="Add New Product"
+            subtitle="Fill in the details to add a new item"
             maxWidth="sm"
-            sx={{
-                "& .MuiDialog-paper": {
-                    borderRadius: 3,
-                    p: 0,
-                    overflow: "hidden",
-                    bgcolor: "#f5f6fa",
-                },
-            }}
-        >
-            <DialogTitle
-                sx={{
-                    px: 2.5,
-                    py: 1.5,
-                    borderBottom: "1px solid #e0e0e0",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    bgcolor: "white",
-                }}
-            >
-                <Stack direction="row" spacing={1.5} alignItems="center">
-                    <Box
-                        sx={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: "50%",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
+            closeOnBackdrop={false}
+            footer={
+                <>
+                    <Button variant="outline" onClick={handleClose} disabled={loadingSubmit}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="primary"
+                        isLoading={loadingSubmit}
+                        startIcon={<Save className="w-4 h-4" />}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            const formEl = document.querySelector("form[noValidate]") as HTMLFormElement | null;
+                            formEl?.requestSubmit();
                         }}
                     >
-                        <Inventory2Outlined color="primary" fontSize="small" />
-                    </Box>
-                    <Box>
-                        <Typography variant="subtitle1" sx={{ height: 16 }} fontWeight={600}>
-                            Add New Product
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            Fill in the details to add a new item
-                        </Typography>
-                    </Box>
-                </Stack>
-                <IconButton size="small" onClick={onClose}>
-                    <Close />
-                </IconButton>
-            </DialogTitle>
+                        {loadingSubmit ? "Adding..." : "Add Product"}
+                    </Button>
+                </>
+            }
+        >
+            <form onSubmit={handleSubmit} noValidate className="space-y-6">
+                <div className="space-y-4">
+                    <Input
+                        label="Name"
+                        required
+                        value={form.name}
+                        onChange={(e) => handleChange("name", e.target.value)}
+                        error={errors.name}
+                        fullWidth
+                    />
 
-            <DialogContent sx={{ p: 0 }}>
-                <Box
-                    component="form"
-                    onSubmit={handleSubmit}
-                    noValidate
-                    sx={{
-                        bgcolor: "white",
-                        borderRadius: 2,
-                        p: 2,
-                    }}
-                >
-                    <Stack spacing={2.5}>
-                        <Stack spacing={2}>
-                            <TextField
-                                size="small"
-                                label="Name"
-                                fullWidth
-                                required
-                                value={form.name}
-                                onChange={(e) => handleChange("name", e.target.value)}
-                                error={!!errors.name}
-                                helperText={errors.name}
-                            />
-
-                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                                <Autocomplete
-                                    fullWidth
-                                    freeSolo
-                                    options={CATEGORY_OPTIONS}
-                                    value={form.category}
-                                    onChange={(_, value) =>
-                                        handleChange("category", (value as string) || "")
-                                    }
-                                    onInputChange={(_, value) =>
-                                        handleChange("category", (value as string) || "")
-                                    }
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            size="small"
-                                            label="Category"
-                                            required
-                                            error={!!errors.category}
-                                            helperText={
-                                                errors.category || "Type or select category"
-                                            }
-                                        />
-                                    )}
-                                />
-
-                                <Autocomplete
-                                    fullWidth
-                                    freeSolo
-                                    options={BRAND_OPTIONS}
-                                    value={form.brand}
-                                    onChange={(_, value) =>
-                                        handleChange("brand", (value as string) || "")
-                                    }
-                                    onInputChange={(_, value) =>
-                                        handleChange("brand", (value as string) || "")
-                                    }
-                                    renderInput={(params) => (
-                                        <TextField
-                                            {...params}
-                                            size="small"
-                                            label="Brand"
-                                            required
-                                            error={!!errors.brand}
-                                            helperText={errors.brand || "Type or select brand"}
-                                        />
-                                    )}
-                                />
-                            </Stack>
-
-                            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                                <TextField
-                                    size="small"
-                                    label="Model No"
-                                    fullWidth
-                                    required
-                                    value={form.modelNo}
-                                    onChange={(e) => handleChange("modelNo", e.target.value)}
-                                    error={!!errors.modelNo}
-                                    helperText={errors.modelNo}
-                                />
-                                <TextField
-                                    size="small"
-                                    label="Model Year"
-                                    type="number"
-                                    fullWidth
-                                    value={form.modelYear}
-                                    onChange={(e) => handleChange("modelYear", e.target.value)}
-                                />
-                            </Stack>
-
-                            <TextField
-                                size="small"
-                                label="Image URL"
-                                fullWidth
-                                value={form.image}
-                                onChange={(e) => handleChange("image", e.target.value)}
-                            />
-                        </Stack>
-
-                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                            <TextField
-                                size="small"
-                                label="Purchase Rate"
-                                type="number"
-                                fullWidth
-                                value={form.purchaseRate}
-                                onChange={(e) => handleChange("purchaseRate", e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">₹</InputAdornment>
-                                    ),
-                                }}
-                            />
-                            <TextField
-                                size="small"
-                                label="Distributor Rate"
-                                type="number"
-                                fullWidth
-                                value={form.distributorRate}
-                                onChange={(e) =>
-                                    handleChange("distributorRate", e.target.value)
-                                }
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">₹</InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Stack>
-
-                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                            <TextField
-                                size="small"
-                                label="Min Sale Rate"
-                                type="number"
-                                fullWidth
-                                required
-                                value={form.minSaleRate}
-                                onChange={(e) => handleChange("minSaleRate", e.target.value)}
-                                error={!!errors.minSaleRate}
-                                helperText={errors.minSaleRate}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">₹</InputAdornment>
-                                    ),
-                                }}
-                            />
-                            <TextField
-                                size="small"
-                                label="Tag Rate"
-                                type="number"
-                                fullWidth
-                                value={form.tagRate}
-                                onChange={(e) => handleChange("tagRate", e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">₹</InputAdornment>
-                                    ),
-                                }}
-                            />
-                        </Stack>
-
-                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                            <TextField
-                                size="small"
-                                label="Star Rating"
-                                type="number"
-                                fullWidth
-                                value={form.starRating}
-                                onChange={(e) => handleChange("starRating", e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <StarBorder fontSize="small" />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                inputProps={{ min: 0, max: 5, step: 0.1 }}
-                            />
-                            <TextField
-                                size="small"
-                                label="Critical Sell Score"
-                                type="number"
-                                fullWidth
-                                value={form.criticalSellScore}
-                                onChange={(e) =>
-                                    handleChange("criticalSellScore", e.target.value)
-                                }
-                                helperText="1–10 (how urgent to sell)"
-                                inputProps={{ min: 0, max: 10, step: 1 }}
-                            />
-                        </Stack>
-
-                        <TextField
-                            size="small"
-                            label="Stock"
-                            type="number"
-                            fullWidth
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Autocomplete
+                            label="Category"
                             required
-                            value={form.stock}
-                            onChange={(e) => handleChange("stock", e.target.value)}
-                            error={!!errors.stock}
-                            helperText={errors.stock}
-                            inputProps={{ min: 0 }}
+                            options={CATEGORY_OPTIONS}
+                            value={form.category}
+                            onChange={(value) => handleChange("category", value)}
+                            error={errors.category}
+                            helperText={errors.category || "Type or select category"}
+                            freeSolo
+                            fullWidth
                         />
 
-                        <button type="submit" hidden />
-                    </Stack>
-                </Box>
-            </DialogContent>
+                        <Autocomplete
+                            label="Brand"
+                            required
+                            options={BRAND_OPTIONS}
+                            value={form.brand}
+                            onChange={(value) => handleChange("brand", value)}
+                            error={errors.brand}
+                            helperText={errors.brand || "Type or select brand"}
+                            freeSolo
+                            fullWidth
+                        />
+                    </div>
 
-            <DialogActions
-                sx={{
-                    px: 2.5,
-                    py: 1.5,
-                    borderTop: "1px solid #e0e0e0",
-                    bgcolor: "white",
-                }}
-            >
-                <Button onClick={onClose} disabled={loadingSubmit}>
-                    Cancel
-                </Button>
-                <Button
-                    type="submit"
-                    form=""
-                    startIcon={
-                        loadingSubmit ? (
-                            <CircularProgress size={18} color="inherit" />
-                        ) : (
-                            <Save />
-                        )
-                    }
-                    variant="contained"
-                    disabled={loadingSubmit}
-                    onClick={() => {
-                        const formEl = document.querySelector(
-                            "form[noValidate]"
-                        ) as HTMLFormElement | null;
-                        formEl?.requestSubmit();
-                    }}
-                >
-                    {loadingSubmit ? "Adding..." : "Add Product"}
-                </Button>
-            </DialogActions>
-        </Dialog>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input
+                            label="Model No"
+                            required
+                            value={form.modelNo}
+                            onChange={(e) => handleChange("modelNo", e.target.value)}
+                            error={errors.modelNo}
+                            fullWidth
+                        />
+                        <Input
+                            label="Model Year"
+                            type="number"
+                            value={form.modelYear}
+                            onChange={(e) => handleChange("modelYear", e.target.value)}
+                            fullWidth
+                        />
+                    </div>
+
+                    <Input
+                        label="Image URL"
+                        value={form.image}
+                        onChange={(e) => handleChange("image", e.target.value)}
+                        fullWidth
+                    />
+                </div>
+
+                {isAdminOrManager && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input
+                            label="Purchase Rate"
+                            type="number"
+                            value={form.purchaseRate}
+                            onChange={(e) => handleChange("purchaseRate", e.target.value)}
+                            startIcon={<span className="text-gray-500">{getCurrencySymbol()}</span>}
+                            fullWidth
+                        />
+                        <Input
+                            label="Distributor Rate"
+                            type="number"
+                            value={form.distributorRate}
+                            onChange={(e) => handleChange("distributorRate", e.target.value)}
+                            startIcon={<span className="text-gray-500">{getCurrencySymbol()}</span>}
+                            fullWidth
+                        />
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                        label="Min Sale Rate"
+                        type="number"
+                        required
+                        value={form.minSaleRate}
+                        onChange={(e) => handleChange("minSaleRate", e.target.value)}
+                        error={errors.minSaleRate}
+                        startIcon={<span className="text-gray-500">{getCurrencySymbol()}</span>}
+                        fullWidth
+                    />
+                    <Input
+                        label="Tag Rate"
+                        type="number"
+                        value={form.tagRate}
+                        onChange={(e) => handleChange("tagRate", e.target.value)}
+                        startIcon={<span className="text-gray-500">{getCurrencySymbol()}</span>}
+                        fullWidth
+                    />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Input
+                        label="Star Rating"
+                        type="number"
+                        value={form.starRating}
+                        onChange={(e) => handleChange("starRating", e.target.value)}
+                        startIcon={<Star className="w-4 h-4" />}
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        fullWidth
+                    />
+                    <Input
+                        label="Critical Sell Score"
+                        type="number"
+                        value={form.criticalSellScore}
+                        onChange={(e) => handleChange("criticalSellScore", e.target.value)}
+                        helperText="1–10 (how urgent to sell)"
+                        min={0}
+                        max={10}
+                        step={1}
+                        fullWidth
+                    />
+                </div>
+
+                <Input
+                    label="Stock"
+                    type="number"
+                    required
+                    value={form.stock}
+                    onChange={(e) => handleChange("stock", e.target.value)}
+                    error={errors.stock}
+                    min={0}
+                    fullWidth
+                />
+            </form>
+        </Modal>
+        </>
     );
 }

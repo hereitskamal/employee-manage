@@ -1,11 +1,12 @@
 // models/User.ts
 import mongoose, { Schema, models } from "mongoose";
+import { UserRole, ROLES } from "@/lib/roles";
 
 export interface IUser extends mongoose.Document {
     name: string;
     email: string;
     password?: string;
-    role: "admin" | "manager" | "employee" | "helper" | "spc";
+    role: UserRole;
     image?: string;
     provider?: "credentials" | "google";
 
@@ -51,7 +52,7 @@ const UserSchema = new Schema<IUser>(
         },
         role: {
             type: String,
-            enum: ["admin", "manager", "employee", "helper", "spc"],
+            enum: ROLES,
             default: "employee",
         },
         image: String,

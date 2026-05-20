@@ -1,22 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  TextField,
-  Typography,
-  Stack,
-  Alert,
-  Paper,
-} from "@mui/material";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import PersonOutlineOutlinedIcon from "@mui/icons-material/PersonOutlineOutlined";
-import CircularProgress from "@mui/material/CircularProgress";
+import { Mail, Lock, User } from "lucide-react";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -103,229 +93,98 @@ export default function RegisterPage() {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background:
-          "radial-gradient(circle at top, #f4f7ff 0, #f8f9fb 40%, #eef1f7 100%)",
-        px: 2,
-        py: 6,
-      }}
-    >
-      <Container maxWidth="xs">
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 6,
-            p: 4,
-            bgcolor: "rgba(255,255,255,0.9)",
-            // backdropFilter: "blur(10px)",
-            // border: "1px solid rgba(15, 23, 42, 0.06)",
-            // boxShadow: "0 18px 45px rgba(15, 23, 42, 0.08)",
-          }}
-        >
-          <Typography variant="h4" fontWeight={700} textAlign="left" mb={0.5}>
-            Create an account
-          </Typography>
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            textAlign="left"
-            mb={4}
-          >
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-gray-50 to-gray-100 px-4 py-12">
+      <div className="w-full max-w-md">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
+          <h1 className="text-3xl font-bold text-left mb-1">Create an account</h1>
+          <p className="text-sm text-gray-600 text-left mb-8">
             Sign up with your email and start managing employees.
-          </Typography>
+          </p>
 
           {formError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formError}
-            </Alert>
+            <div className="mb-6">
+              <Alert severity="error">{formError}</Alert>
+            </div>
           )}
 
           {formSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {formSuccess}
-            </Alert>
+            <div className="mb-6">
+              <Alert severity="success">{formSuccess}</Alert>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Stack spacing={2.2}>
-              <TextField
-                label="Full name"
-                size="small"
-                fullWidth
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (errors.name)
-                    setErrors((prev) => ({ ...prev, name: undefined }));
-                }}
-                error={!!errors.name}
-                helperText={errors.name}
-                InputProps={{
-                  startAdornment: (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mr: 1,
-                        color: "text.secondary",
-                      }}
-                    >
-                      <PersonOutlineOutlinedIcon fontSize="small" />
-                    </Box>
-                  ),
-                }}
-              />
-              <TextField
-                label="Work email"
-                type="email"
-                size="small"
-                fullWidth
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email)
-                    setErrors((prev) => ({ ...prev, email: undefined }));
-                }}
-                error={!!errors.email}
-                helperText={errors.email}
-                InputProps={{
-                  startAdornment: (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mr: 1,
-                        color: "text.secondary",
-                      }}
-                    >
-                      <EmailOutlinedIcon fontSize="small" />
-                    </Box>
-                  ),
-                }}
-              />
-              <TextField
-                label="Password"
-                type="password"
-                size="small"
-                fullWidth
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  if (errors.password)
-                    setErrors((prev) => ({ ...prev, password: undefined }));
-                }}
-                error={!!errors.password}
-                helperText={errors.password || "At least 6 characters"}
-                InputProps={{
-                  startAdornment: (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mr: 1,
-                        color: "text.secondary",
-                      }}
-                    >
-                      <LockOutlinedIcon fontSize="small" />
-                    </Box>
-                  ),
-                }}
-              />
-              <TextField
-                label="Confirm password"
-                type="password"
-                size="small"
-                fullWidth
-                value={confirm}
-                onChange={(e) => {
-                  setConfirm(e.target.value);
-                  if (errors.confirm)
-                    setErrors((prev) => ({ ...prev, confirm: undefined }));
-                }}
-                error={!!errors.confirm}
-                helperText={errors.confirm}
-                InputProps={{
-                  startAdornment: (
-                    <Box
-                      component="span"
-                      sx={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        mr: 1,
-                        color: "text.secondary",
-                      }}
-                    >
-                      <LockOutlinedIcon fontSize="small" />
-                    </Box>
-                  ),
-                }}
-              />
-
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={loading}
-                sx={{
-                  mt: 0.5,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  py: 1.1,
-                }}
-              >
-                {loading ? (
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    alignItems="center"
-                    justifyContent="center"
-                  >
-                    <CircularProgress size={18} color="inherit" />
-                    <span>Creating account...</span>
-                  </Stack>
-                ) : (
-                  "Sign up"
-                )}
-              </Button>
-            </Stack>
-          </Box>
-
-          <Typography
-            mt={3}
-            textAlign="center"
-            variant="body2"
-            color="text.secondary"
-          >
-            Already have an account?{" "}
-            <Button
-              variant="text"
-              size="small"
-              onClick={() => router.push("/login")}
-              sx={{
-                textTransform: "none",
-                fontWeight: 600,
-                px: 0.3,
-                minWidth: "auto",
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            <Input
+              label="Full name"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) setErrors((prev) => ({ ...prev, name: undefined }));
               }}
+              error={errors.name}
+              startIcon={<User className="w-4 h-4" />}
+              fullWidth
+            />
+            <Input
+              label="Work email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
+              error={errors.email}
+              startIcon={<Mail className="w-4 h-4" />}
+              fullWidth
+            />
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+              }}
+              error={errors.password}
+              helperText={errors.password || "At least 6 characters"}
+              startIcon={<Lock className="w-4 h-4" />}
+              fullWidth
+            />
+            <Input
+              label="Confirm password"
+              type="password"
+              value={confirm}
+              onChange={(e) => {
+                setConfirm(e.target.value);
+                if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: undefined }));
+              }}
+              error={errors.confirm}
+              startIcon={<Lock className="w-4 h-4" />}
+              fullWidth
+            />
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              fullWidth
+            >
+              {loading ? "Creating account..." : "Sign up"}
+            </Button>
+          </form>
+
+          <p className="mt-6 text-center text-sm text-gray-600">
+            Already have an account?{" "}
+            <button
+              onClick={() => router.push("/login")}
+              className="text-blue-600 hover:text-blue-700 font-semibold"
             >
               Log in
-            </Button>
-          </Typography>
-        </Paper>
-      </Container>
-    </Box>
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

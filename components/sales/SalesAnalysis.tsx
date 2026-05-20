@@ -8,6 +8,7 @@ import RevenueChart from "./RevenueChart";
 import TopProductsChart from "./TopProductsChart";
 import SalesByEmployeeChart from "./SalesByEmployeeChart";
 import CategorySalesChart from "./CategorySalesChart";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export default function SalesAnalysis() {
     const [startDate, setStartDate] = useState("");
@@ -58,7 +59,7 @@ export default function SalesAnalysis() {
                     <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, minWidth: 150 , width: "100%"}}>
                         <Box sx={{ color: "text.secondary", fontSize: "0.875rem" }}>Today</Box>
                         <Box sx={{ fontSize: "1.5rem", fontWeight: 600 }}>
-                            ₹{stats.today.revenue.toLocaleString()}
+                            {formatCurrency(stats.today.revenue)}
                         </Box>
                         <Box sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
                             {stats.today.count} sales
@@ -67,7 +68,7 @@ export default function SalesAnalysis() {
                     <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, minWidth: 150 , width: "100%"}}>
                         <Box sx={{ color: "text.secondary", fontSize: "0.875rem" }}>This Week</Box>
                         <Box sx={{ fontSize: "1.5rem", fontWeight: 600 }}>
-                            ₹{stats.week.revenue.toLocaleString()}
+                            {formatCurrency(stats.week.revenue)}
                         </Box>
                         <Box sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
                             {stats.week.count} sales
@@ -76,7 +77,7 @@ export default function SalesAnalysis() {
                     <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, minWidth: 150 , width: "100%"}}>
                         <Box sx={{ color: "text.secondary", fontSize: "0.875rem" }}>This Month</Box>
                         <Box sx={{ fontSize: "1.5rem", fontWeight: 600 }}>
-                            ₹{stats.month.revenue.toLocaleString()}
+                            {formatCurrency(stats.month.revenue)}
                         </Box>
                         <Box sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
                             {stats.month.count} sales
@@ -85,10 +86,10 @@ export default function SalesAnalysis() {
                     <Box sx={{ p: 2, bgcolor: "background.paper", borderRadius: 2, minWidth: 150 , width: "100%"}}>
                         <Box sx={{ color: "text.secondary", fontSize: "0.875rem" }}>Overall</Box>
                         <Box sx={{ fontSize: "1.5rem", fontWeight: 600 }}>
-                            ₹{stats.overall.revenue.toLocaleString()}
+                            {formatCurrency(stats.overall.revenue)}
                         </Box>
                         <Box sx={{ color: "text.secondary", fontSize: "0.75rem" }}>
-                            Avg: ₹{Math.round(stats.overall.average).toLocaleString()}
+                            Avg: {formatCurrency(Math.round(stats.overall.average))}
                         </Box>
                     </Box>
                 </Box>

@@ -6,6 +6,7 @@ import { connectToDB } from "@/lib/db";
 import { Attendance } from "@/models/Attendance";
 import mongoose from "mongoose";
 import { success, failure } from "@/lib/apiResponse";
+import { isPrivileged } from "@/lib/access";
 
 /**
  * GET /api/attendance
@@ -33,14 +34,13 @@ export async function GET(req: Request) {
         const limit = parseInt(searchParams.get("limit") || "50");
         const page = parseInt(searchParams.get("page") || "1");
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
+        const hasPrivilegedAccess = isPrivileged(session.user.role);
 
         // Build query
         const query: Record<string, unknown> = {};
 
         // Role-based filtering
-        if (!isPrivileged) {
+        if (!hasPrivilegedAccess) {
             // Employees can only see their own attendance
             query.userId = new mongoose.Types.ObjectId(session.user.id);
         } else if (userId) {
@@ -115,8 +115,7 @@ export async function POST(req: Request) {
 
         await connectToDB();
 
-        const isPrivileged =
-            session.user.role === "admin" || session.user.role === "manager";
+        const hasPrivilegedAccess = isPrivileged(session.user.role);
 
         // Use session user ID if not provided
         let targetUserId = userId || session.user.id;
@@ -128,7 +127,7 @@ export async function POST(req: Request) {
         }
 
         // Non-privileged users can only create attendance for themselves
-        if (!isPrivileged && targetUserId !== session.user.id) {
+        if (!hasPrivilegedAccess && targetUserId !== session.user.id) {
             return NextResponse.json(
                 { message: "You can only create attendance records for yourself" },
                 { status: 403 }

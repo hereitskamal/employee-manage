@@ -13,6 +13,8 @@ import {
 import { SaleRow } from "@/types/sale";
 import { useSession } from "next-auth/react";
 import { Box, Chip } from "@mui/material";
+import { isPrivileged } from "@/lib/access";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface SalesTableProps {
     rows: SaleRow[];
@@ -32,8 +34,7 @@ export default function SalesTable({
     const { data: session } = useSession();
     const [selectedId, setSelectedId] = useState<string | null>(null);
 
-    const isPrivileged =
-        session?.user?.role === "admin" || session?.user?.role === "manager";
+    const hasPrivilegedAccess = isPrivileged(session?.user?.role);
 
     const columns: GridColDef[] = [
         {
@@ -100,7 +101,7 @@ export default function SalesTable({
                 if (value == null) return "";
                 const amount = typeof value === "number" ? value : Number(value);
                 if (isNaN(amount)) return "";
-                return `₹${amount.toLocaleString()}`;
+                return formatCurrency(amount);
             },
         },
         {

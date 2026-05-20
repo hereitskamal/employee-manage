@@ -12,6 +12,7 @@ import {
 import { ProductRow } from "@/types/product";
 import { useSession } from "next-auth/react";
 import ProductDrawer from "./ProductDrawer";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface ProductTableProps {
     rows: ProductRow[];
@@ -54,7 +55,7 @@ export default function ProductTable({
             minWidth: 120,
             flex: 0.8,
             valueFormatter: (p) =>
-                p != null ? `₹${Number(p).toLocaleString()}` : "",
+                p != null ? formatCurrency(Number(p)) : "",
         },
         {
             field: "tagRate",
@@ -63,7 +64,7 @@ export default function ProductTable({
             minWidth: 120,
             flex: 0.8,
             valueFormatter: (p) =>
-                p != null ? `₹${Number(p).toLocaleString()}` : "",
+                p != null ? formatCurrency(Number(p)) : "",
         },
         {
             field: "starRating",
@@ -96,7 +97,7 @@ export default function ProductTable({
             minWidth: 130,
             flex: 0.8,
             valueFormatter: (p) =>
-                p != null ? `₹${Number(p).toLocaleString()}` : "",
+                p != null ? formatCurrency(Number(p)) : "",
         },
         {
             field: "distributorRate",
@@ -105,7 +106,7 @@ export default function ProductTable({
             minWidth: 140,
             flex: 0.8,
             valueFormatter: (p) =>
-                p != null ? `₹${Number(p).toLocaleString()}` : "",
+                p != null ? formatCurrency(Number(p)) : "",
         },
     ];
 

@@ -1,3 +1,4 @@
+// components/sales/SalesFilters.tsx
 "use client";
 
 import { Add } from "@mui/icons-material";
@@ -16,7 +17,12 @@ interface SalesFiltersProps {
     onAddClick?: () => void;
 }
 
-const STATUS_OPTIONS = ["", "completed", "pending", "cancelled"];
+const STATUS_OPTIONS = [
+    "",
+    "completed",
+    "pending",
+    "cancelled"
+];
 
 export default function SalesFilters({
     searchText,
@@ -30,8 +36,7 @@ export default function SalesFilters({
     onAddClick,
 }: SalesFiltersProps) {
     const { data: session } = useSession();
-    const isPrivileged =
-        session?.user?.role === "admin" || session?.user?.role === "manager";
+    const isPrivileged = session?.user?.role === "admin" || session?.user?.role === "manager";
 
     return (
         <Stack
@@ -46,14 +51,14 @@ export default function SalesFilters({
             }}
         >
             <TextField
-                label="Search"
+                label="Search sales"
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 size="small"
                 fullWidth
                 variant="outlined"
                 sx={{
-                    maxWidth: { xs: "100%", sm: 300 },
+                    maxWidth: { xs: "100%", sm: 280 },
                     "& .MuiOutlinedInput-root": {
                         "& fieldset": { border: "2px solid #d0d0d0ff" },
                         "& input": { outline: "none" },
@@ -69,7 +74,7 @@ export default function SalesFilters({
                 size="small"
                 fullWidth
                 sx={{
-                    maxWidth: { xs: "100%", sm: 150 },
+                    maxWidth: { xs: "100%", sm: 180 },
                     "& .MuiOutlinedInput-root": {
                         "& fieldset": { border: "2px solid #d0d0d0ff" },
                         "& input": { outline: "none" },
@@ -77,7 +82,7 @@ export default function SalesFilters({
                 }}
             >
                 <MenuItem value="">All</MenuItem>
-                {STATUS_OPTIONS.filter(s => s).map((status) => (
+                {STATUS_OPTIONS.filter(s => s !== "").map((status) => (
                     <MenuItem key={status} value={status}>
                         {status.charAt(0).toUpperCase() + status.slice(1)}
                     </MenuItem>
@@ -85,12 +90,14 @@ export default function SalesFilters({
             </TextField>
 
             <TextField
-                type="date"
                 label="Start Date"
+                type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
                 size="small"
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{
+                    shrink: true,
+                }}
                 fullWidth
                 sx={{
                     maxWidth: { xs: "100%", sm: 180 },
@@ -102,12 +109,14 @@ export default function SalesFilters({
             />
 
             <TextField
-                type="date"
                 label="End Date"
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 size="small"
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{
+                    shrink: true,
+                }}
                 fullWidth
                 sx={{
                     maxWidth: { xs: "100%", sm: 180 },
@@ -118,7 +127,7 @@ export default function SalesFilters({
                 }}
             />
 
-            {isPrivileged && onAddClick && (
+            {isPrivileged && (
                 <Button
                     startIcon={<Add />}
                     variant="contained"
@@ -131,4 +140,3 @@ export default function SalesFilters({
         </Stack>
     );
 }
-

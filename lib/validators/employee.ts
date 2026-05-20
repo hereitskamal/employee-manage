@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ROLE_ENUM } from "@/lib/roles";
 
 /**
  * Employee Create Schema
@@ -15,6 +16,7 @@ export const employeeCreateSchema = z.object({
   location: z.string().trim().optional(),
   age: z.coerce.number().int().min(0).max(150).optional(),
   performance: z.coerce.number().min(0).max(100).optional(),
+  role: ROLE_ENUM.optional(),
 });
 
 /**
@@ -32,7 +34,7 @@ export const employeeUpdateSchema = z.object({
   location: z.string().trim().optional(),
   age: z.coerce.number().int().min(0).max(150).optional(),
   performance: z.coerce.number().min(0).max(100).optional(),
-  role: z.enum(["admin", "manager", "employee", "spc"]).optional(),
+  role: ROLE_ENUM.optional(),
 });
 
 // Type exports for TypeScript inference

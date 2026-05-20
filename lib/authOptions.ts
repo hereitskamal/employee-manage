@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import { connectToDB } from "@/lib/db";
 import { User } from "@/models/User";
+import { UserRole } from "@/lib/roles";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -146,7 +147,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         const extendedUser = user as { id?: string; role?: string; isProfileComplete?: boolean; mustSetPassword?: boolean };
         token.id = extendedUser.id ?? token.id;
-        token.role = extendedUser.role as "admin" | "manager" | "employee" | "spc" | undefined ?? token.role;
+        token.role = (extendedUser.role as UserRole | undefined) ?? token.role;
         token.isProfileComplete = extendedUser.isProfileComplete ?? token.isProfileComplete ?? false;
         token.mustSetPassword = extendedUser.mustSetPassword ?? token.mustSetPassword ?? false;
       }

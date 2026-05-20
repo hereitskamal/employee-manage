@@ -1,24 +1,18 @@
 "use client";
 
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Button,
-  Stack,
-  Typography,
-  Divider,
-  InputAdornment,
-  CircularProgress,
-  Autocomplete,
-  Box,
-  IconButton,
-} from "@mui/material";
 import { useEffect, useState, FormEvent } from "react";
-import { Save, PersonAdd, Close, WorkOutline, Email, Phone, LocationOn, CalendarToday, StarBorder } from "@mui/icons-material";
+import { useSession } from "next-auth/react";
+import { Save, UserPlus, Briefcase, Mail, Phone, MapPin, Calendar, Star, Shield } from "lucide-react";
 import { EmployeeForm } from "@/types/employee";
+import { Modal } from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Autocomplete } from "@/components/ui/Autocomplete";
+import { Select } from "@/components/ui/Select";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { canManageEmployees } from "@/lib/access";
+import { ROLES } from "@/lib/roles";
+import { getCurrencySymbol } from "@/lib/utils/currency";
 
 interface AddEmployeeModalProps {
   open: boolean;
@@ -29,11 +23,28 @@ interface AddEmployeeModalProps {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployeeModalProps) {
+  const { data: session } = useSession();
+  const canManage = canManageEmployees(session?.user?.role);
+  
   const [departments, setDepartments] = useState<string[]>([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
-  const [form, setForm] = useState<EmployeeForm>({
+  type FormState = {
+    name: string;
+    department: string;
+    title: string;
+    email: string;
+    phone: string;
+    location: string;
+    salary: number;
+    age: number;
+    hireDate: string;
+    performance: number;
+    role: string;
+  };
+
+  const [form, setForm] = useState<FormState>({
     name: "",
     department: "",
     title: "",
@@ -44,9 +55,29 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
     age: 0,
     hireDate: "",
     performance: 0,
+    role: "employee",
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingClose, setPendingClose] = useState(false);
+
+  // Check if form has been modified
+  const hasUnsavedChanges = () => {
+    return !!(
+      form.name.trim() ||
+      form.email.trim() ||
+      form.phone.trim() ||
+      form.department.trim() ||
+      form.title.trim() ||
+      form.location.trim() ||
+      form.salary > 0 ||
+      form.age > 0 ||
+      form.hireDate ||
+      form.performance > 0 ||
+      (form.role && form.role !== "employee")
+    );
+  };
 
   // Reset form when modal opens
   useEffect(() => {
@@ -62,11 +93,36 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
         age: 0,
         hireDate: "",
         performance: 0,
+        role: "employee",
       });
       setErrors({});
       setLoadingSubmit(false);
+      setPendingClose(false);
     }
   }, [open]);
+
+  // Handle close with confirmation
+  const handleClose = () => {
+    if (hasUnsavedChanges() && !loadingSubmit) {
+      setShowConfirmDialog(true);
+      setPendingClose(true);
+    } else {
+      onClose();
+    }
+  };
+
+  // Confirm discard changes
+  const handleConfirmDiscard = () => {
+    setShowConfirmDialog(false);
+    setPendingClose(false);
+    onClose();
+  };
+
+  // Cancel discard
+  const handleCancelDiscard = () => {
+    setShowConfirmDialog(false);
+    setPendingClose(false);
+  };
 
   // Fetch departments
   useEffect(() => {
@@ -89,7 +145,12 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
     loadDepartments();
   }, []);
 
-  const handleChange = (field: keyof EmployeeForm, value: string | number) => {
+  // Hide modal if user doesn't have permission (after all hooks)
+  if (!canManage) {
+    return null;
+  }
+
+  const handleChange = (field: keyof FormState, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (errors[field as string]) {
       setErrors((prev) => ({ ...prev, [field as string]: "" }));
@@ -157,12 +218,7 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
       }
     }
 
-    const hireDateValue = form.hireDate;
-    const dateStr = typeof hireDateValue === 'string' 
-      ? hireDateValue 
-      : hireDateValue instanceof Date 
-        ? hireDateValue.toISOString().split('T')[0]
-        : String(hireDateValue || "");
+    const dateStr = form.hireDate || "";
     const dateError = validateDate(dateStr);
     if (dateError) newErrors.hireDate = dateError;
 
@@ -189,7 +245,10 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
       const response = await fetch("/api/employees", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          role: form.role || "employee",
+        }),
       });
 
       if (!response.ok) {
@@ -207,6 +266,20 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
       }
 
       onAdded?.();
+      // Reset form state before closing
+      setForm({
+        name: "",
+        department: "",
+        title: "",
+        email: "",
+        phone: "",
+        location: "",
+        salary: 0,
+        age: 0,
+        hireDate: "",
+        performance: 0,
+        role: "employee",
+      });
       onClose();
     } catch (error) {
       console.error("Failed to save employee:", error);
@@ -216,329 +289,207 @@ export default function AddEmployeeModal({ open, onClose, onAdded }: AddEmployee
     }
   };
 
+  // Hide modal if user doesn't have permission (after all hooks)
+  if (!canManage) {
+    return null;
+  }
+
   return (
-    <Dialog
-      open={open}
-      onClose={(e, reason) => reason !== "backdropClick" && onClose()}
-      fullWidth
+    <>
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onClose={handleCancelDiscard}
+        onConfirm={handleConfirmDiscard}
+        title="Discard Changes?"
+        message="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmText="Discard"
+        cancelText="Keep Editing"
+        variant="warning"
+      />
+      <Modal
+        open={open && !showConfirmDialog}
+        onClose={handleClose}
+      title="Add New Employee"
+      subtitle="Fill in the details to create a new record"
       maxWidth="sm"
-      sx={{
-        "& .MuiDialog-paper": {
-          borderRadius: 3,
-          p: 0,
-          overflow: "hidden",
-          bgcolor: "#f5f6fa",
-        },
-      }}
-    >
-      {/* Header */}
-      <DialogTitle
-        sx={{
-          px: 2.5,
-          py: 1.5,
-          borderBottom: "1px solid #e0e0e0",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          bgcolor: "white",
-        }}
-      >
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <Box
-            sx={{
-              width: 34,
-              height: 34,
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+      closeOnBackdrop={false}
+      footer={
+        <>
+          <Button variant="outline" onClick={handleClose} disabled={loadingSubmit}>
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            isLoading={loadingSubmit}
+            startIcon={<Save className="w-4 h-4" />}
+            onClick={(e) => {
+              e.preventDefault();
+              const formEl = document.querySelector('form[noValidate]') as HTMLFormElement | null;
+              formEl?.requestSubmit();
             }}
           >
-            <PersonAdd color="primary" fontSize="small" />
-          </Box>
-          <Box>
-            <Typography variant="subtitle1" sx={{ height: 16 }} fontWeight={600}>
-              Add New Employee
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Fill in the details to create a new record
-            </Typography>
-          </Box>
-        </Stack>
-        <IconButton size="small" onClick={onClose}>
-          <Close />
-        </IconButton>
-      </DialogTitle>
+            {loadingSubmit ? "Adding..." : "Add Employee"}
+          </Button>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        {/* Section: Basic Info */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">Basic Information</h3>
+          <div className="space-y-4">
+            <Input
+              label="Full Name"
+              required
+              autoFocus
+              value={form.name}
+              onChange={(e) => handleChange("name", e.target.value)}
+              error={errors.name}
+              startIcon={<UserPlus className="w-4 h-4" />}
+              fullWidth
+            />
 
-      {/* Content */}
-      <DialogContent sx={{ p: 0}}>
-        <Box
-          component="form"
-          onSubmit={handleSubmit}
-          noValidate
-          sx={{
-            bgcolor: "white",
-            borderRadius: 2,
-            p: 2,
-            // boxShadow: "0 1px 4px rgba(15, 23, 42, 0.05)",
-          }}
-        >
-          <Stack spacing={2.5}>
-            {/* Section: Basic Info */}
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} mb={2} color="text.secondary">
-                Basic Information
-              </Typography>
-              <Stack spacing={2}>
-                <TextField
-                  size="small"
-                  label="Full Name"
-                  fullWidth
-                  required
-                  autoFocus
-                  value={form.name}
-                  onChange={(e) => handleChange("name", e.target.value)}
-                  error={!!errors.name}
-                  helperText={errors.name}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonAdd fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Autocomplete
+                label="Department"
+                required
+                options={departments}
+                value={form.department || ""}
+                onChange={(value) => handleChange("department", value)}
+                error={errors.department}
+                helperText={errors.department || "Type to search or add department"}
+                startIcon={<Briefcase className="w-4 h-4" />}
+                loading={loadingDepartments}
+                freeSolo
+                fullWidth
+              />
 
-                <Stack direction="row" spacing={2}>
-                  <Autocomplete
-                    fullWidth
-                    freeSolo
-                    options={departments}
-                    loading={loadingDepartments}
-                    value={form.department || ""}
-                    onChange={(_, value) => handleChange("department", String(value || ""))}
-                    onInputChange={(_, value) => handleChange("department", String(value || ""))}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        size="small"
-                        label="Department"
-                        required
-                        error={!!errors.department}
-                        helperText={errors.department || "Type to search or add department"}
-                        InputProps={{
-                          ...params.InputProps,
-                          startAdornment: (
-                            <>
-                              <InputAdornment position="start">
-                                <WorkOutline fontSize="small" />
-                              </InputAdornment>
-                              {params.InputProps.startAdornment}
-                            </>
-                          ),
-                        }}
-                      />
-                    )}
-                  />
+              <Input
+                label="Job Title"
+                value={form.title}
+                onChange={(e) => handleChange("title", e.target.value)}
+                fullWidth
+              />
+            </div>
 
-                  <TextField
-                    size="small"
-                    label="Job Title"
-                    fullWidth
-                    value={form.title}
-                    onChange={(e) => handleChange("title", e.target.value)}
-                  />
-                </Stack>
-              </Stack>
-            </Box>
+            {session?.user?.role === "admin" && (
+              <Select
+                label="Role"
+                options={ROLES.filter(r => r !== "admin").map(role => ({
+                  value: role,
+                  label: role.charAt(0).toUpperCase() + role.slice(1),
+                }))}
+                value={form.role || "employee"}
+                onChange={(e) => handleChange("role", e.target.value)}
+                startIcon={<Shield className="w-4 h-4" />}
+                fullWidth
+              />
+            )}
+          </div>
+        </div>
 
-            <Divider />
+        <div className="border-t border-gray-200"></div>
 
-            {/* Section: Contact */}
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} mb={2} color="text.secondary">
-                Contact Details
-              </Typography>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={2}>
-                  <TextField
-                    size="small"
-                    label="Email"
-                    type="email"
-                    required
-                    fullWidth
-                    value={form.email}
-                    onChange={(e) => handleChange("email", e.target.value)}
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Email fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    inputProps={{ inputMode: "email" }}
-                  />
-                  <TextField
-                    size="small"
-                    label="Phone"
-                    fullWidth
-                    value={form.phone}
-                    onChange={(e) => {
-                      const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
-                      handleChange("phone", digitsOnly);
-                    }}
-                    error={!!errors.phone}
-                    helperText={errors.phone || "10-digit phone number"}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Phone fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    inputProps={{ maxLength: 10, inputMode: "numeric" }}
-                  />
-                </Stack>
+        {/* Section: Contact */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">Contact Details</h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Email"
+                type="email"
+                required
+                value={form.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                error={errors.email}
+                startIcon={<Mail className="w-4 h-4" />}
+                fullWidth
+              />
+              <Input
+                label="Phone"
+                value={form.phone}
+                onChange={(e) => {
+                  const digitsOnly = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  handleChange("phone", digitsOnly);
+                }}
+                error={errors.phone}
+                helperText={errors.phone || "10-digit phone number"}
+                startIcon={<Phone className="w-4 h-4" />}
+                maxLength={10}
+                inputMode="numeric"
+                fullWidth
+              />
+            </div>
 
-                <TextField
-                  size="small"
-                  label="Location"
-                  fullWidth
-                  value={form.location}
-                  onChange={(e) => handleChange("location", e.target.value)}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LocationOn fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Stack>
-            </Box>
+            <Input
+              label="Location"
+              value={form.location}
+              onChange={(e) => handleChange("location", e.target.value)}
+              startIcon={<MapPin className="w-4 h-4" />}
+              fullWidth
+            />
+          </div>
+        </div>
 
-            <Divider />
+        <div className="border-t border-gray-200"></div>
 
-            {/* Section: Work & Performance */}
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} mb={2} color="text.secondary">
-                Work & Performance
-              </Typography>
-              <Stack spacing={2}>
-                <Stack direction="row" spacing={2}>
-                  <TextField
-                    size="small"
-                    label="Salary"
-                    type="number"
-                    required
-                    fullWidth
-                    value={form.salary || ""}
-                    onChange={(e) => handleChange("salary", Number(e.target.value) || 0)}
-                    error={!!errors.salary}
-                    helperText={errors.salary}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          ₹
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                  <TextField
-                    size="small"
-                    label="Age"
-                    type="number"
-                    required
-                    fullWidth
-                    value={form.age || ""}
-                    onChange={(e) => handleChange("age", Number(e.target.value) || 0)}
-                    error={!!errors.age}
-                    helperText={errors.age}
-                    inputProps={{ min: 18, max: 100 }}
-                  />
-                </Stack>
+        {/* Section: Work & Performance */}
+        <div>
+          <h3 className="text-sm font-semibold text-gray-600 mb-4">Work & Performance</h3>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Salary"
+                type="number"
+                required
+                value={form.salary || ""}
+                onChange={(e) => handleChange("salary", Number(e.target.value) || 0)}
+                error={errors.salary}
+                startIcon={<span className="text-gray-500">{getCurrencySymbol()}</span>}
+                fullWidth
+              />
+              <Input
+                label="Age"
+                type="number"
+                required
+                value={form.age || ""}
+                onChange={(e) => handleChange("age", Number(e.target.value) || 0)}
+                error={errors.age}
+                min={18}
+                max={100}
+                fullWidth
+              />
+            </div>
 
-                <Stack direction="row" spacing={2}>
-                  <TextField
-                    size="small"
-                    label="Hire Date"
-                    type="date"
-                    InputLabelProps={{ shrink: true }}
-                    fullWidth
-                    value={form.hireDate}
-                    onChange={(e) => handleChange("hireDate", e.target.value)}
-                    InputProps={{
-                      inputProps: { max: new Date().toISOString().split("T")[0] },
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <CalendarToday fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    error={!!errors.hireDate}
-                    helperText={errors.hireDate}
-                  />
-                  <TextField
-                    size="small"
-                    label="Performance Score"
-                    type="number"
-                    fullWidth
-                    value={form.performance || ""}
-                    onChange={(e) => handleChange("performance", Number(e.target.value) || 0)}
-                    error={!!errors.performance}
-                    helperText={errors.performance || "0–100"}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <StarBorder fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    }}
-                    inputProps={{ min: 0, max: 100, step: 0.1 }}
-                  />
-                </Stack>
-              </Stack>
-            </Box>
-
-            {/* Hidden actual submit button for Enter key if needed */}
-            <button type="submit" hidden />
-          </Stack>
-        </Box>
-      </DialogContent>
-
-      {/* Footer */}
-      <DialogActions
-        sx={{
-          px: 2.5,
-          py: 1.5,
-          borderTop: "1px solid #e0e0e0",
-          bgcolor: "white",
-        }}
-      >
-        <Button onClick={onClose} disabled={loadingSubmit}>
-          Cancel
-        </Button>
-        <Button
-          type="submit"
-          form={undefined} // form is the Box with onSubmit; submit via hidden button OR keep this as onClick if you prefer
-          startIcon={
-            loadingSubmit ? <CircularProgress size={18} color="inherit" /> : <Save />
-          }
-          variant="contained"
-          disabled={loadingSubmit}
-          onClick={() => {
-            // manually trigger submit by dispatching submit event on the form
-            const formEl = document.querySelector(
-              'form[noValidate]'
-            ) as HTMLFormElement | null;
-            formEl?.requestSubmit();
-          }}
-        >
-          {loadingSubmit ? "Adding..." : "Add Employee"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Hire Date"
+                type="date"
+                value={form.hireDate}
+                onChange={(e) => handleChange("hireDate", e.target.value)}
+                error={errors.hireDate}
+                startIcon={<Calendar className="w-4 h-4" />}
+                max={new Date().toISOString().split("T")[0]}
+                fullWidth
+              />
+              <Input
+                label="Performance Score"
+                type="number"
+                value={form.performance || ""}
+                onChange={(e) => handleChange("performance", Number(e.target.value) || 0)}
+                error={errors.performance}
+                helperText={errors.performance || "0–100"}
+                startIcon={<Star className="w-4 h-4" />}
+                min={0}
+                max={100}
+                step={0.1}
+                fullWidth
+              />
+            </div>
+          </div>
+        </div>
+      </form>
+    </Modal>
+    </>
   );
 }

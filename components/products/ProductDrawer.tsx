@@ -28,6 +28,7 @@ import StarRateIcon from "@mui/icons-material/StarRate";
 import DescriptionIcon from "@mui/icons-material/Description";
 import type { ProductRow } from "@/types/product";
 import { getId } from "@/types/nextjs";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface ProductDrawerProps {
   id: string | null;
@@ -44,10 +45,6 @@ export default function ProductDrawer({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  // Helpers
-  const formatCurrency = (v?: number) =>
-    v != null ? `₹${Number(v).toLocaleString()}` : "-";
 
   const formatDate = (value?: string | Date) => {
     if (!value) return "-";

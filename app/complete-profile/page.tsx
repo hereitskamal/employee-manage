@@ -1,20 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Box,
-  Button,
-  Container,
-  TextField,
-  Typography,
-  Stack,
-  Alert,
-  Paper,
-  Autocomplete,
-  CircularProgress,
-} from "@mui/material";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Alert } from "@/components/ui/Alert";
+import { Autocomplete } from "@/components/ui/Autocomplete";
 
 export default function CompleteProfilePage() {
   const { data: session, status } = useSession();
@@ -160,252 +152,188 @@ export default function CompleteProfilePage() {
   // Loading skeleton
   if (status === "loading") {
     return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <CircularProgress />
-      </Box>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
     );
   }
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "radial-gradient(circle at top, #f4f7ff 0, #f8f9fb 40%, #eef1f7 100%)",
-        px: 2,
-        py: 6,
-      }}
-    >
-      <Container maxWidth="sm">
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 6,
-            p: 4,
-            bgcolor: "rgba(255,255,255,0.9)",
-          }}
-        >
-          <Typography variant="h4" fontWeight={700} mb={0.5}>
-            Complete your profile
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={4}>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-gray-50 to-gray-100 px-4 py-12">
+      <div className="w-full max-w-lg">
+        <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-xl">
+          <h1 className="text-3xl font-bold mb-1">Complete your profile</h1>
+          <p className="text-sm text-gray-600 mb-8">
             Just a few more details to finish setting up your account.
-          </Typography>
+          </p>
 
           {formError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formError}
-            </Alert>
+            <div className="mb-6">
+              <Alert severity="error">{formError}</Alert>
+            </div>
           )}
 
           {formSuccess && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {formSuccess}
-            </Alert>
+            <div className="mb-6">
+              <Alert severity="success">{formSuccess}</Alert>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} noValidate>
-            <Stack spacing={2.2}>
-              <TextField
-                label="Phone"
-                size="small"
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+            <Input
+              label="Phone"
+              required
+              value={phone}
+              onChange={(e) => {
+                setPhone(e.target.value);
+                if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+              }}
+              error={errors.phone}
+              fullWidth
+            />
+
+            <Autocomplete
+              label="Department"
+              required
+              options={departments}
+              value={department}
+              onChange={(value) => {
+                setDepartment(value);
+                if (errors.department) setErrors((prev) => ({ ...prev, department: undefined }));
+              }}
+              error={errors.department}
+              helperText={errors.department || "Type to search or add department"}
+              loading={loadingDepartments}
+              freeSolo
+              fullWidth
+            />
+
+            <Input
+              label="Title"
+              required
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
+              }}
+              error={errors.title}
+              fullWidth
+            />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Salary"
+                type="number"
+                value={salary}
+                onChange={(e) => {
+                  setSalary(e.target.value);
+                  if (errors.salary) setErrors((prev) => ({ ...prev, salary: undefined }));
+                }}
+                error={errors.salary}
+                helperText={errors.salary || "Optional"}
                 fullWidth
+              />
+
+              <Input
+                label="Hire date"
+                type="date"
                 required
-                value={phone}
+                value={hireDate}
                 onChange={(e) => {
-                  setPhone(e.target.value);
-                  if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+                  setHireDate(e.target.value);
+                  if (errors.hireDate) setErrors((prev) => ({ ...prev, hireDate: undefined }));
                 }}
-                error={!!errors.phone}
-                helperText={errors.phone}
-              />
-
-              {/* Department dropdown */}
-              <Autocomplete
-                freeSolo
-                options={departments}
-                loading={loadingDepartments}
-                value={department}
-                onChange={(_, value) => {
-                  setDepartment(value || "");
-                  if (errors.department) setErrors((prev) => ({ ...prev, department: undefined }));
-                }}
-                onInputChange={(_, value) => {
-                  setDepartment(value);
-                  if (errors.department) setErrors((prev) => ({ ...prev, department: undefined }));
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Department"
-                    size="small"
-                    required
-                    error={!!errors.department}
-                    helperText={errors.department || "Type to search or add department"}
-                  />
-                )}
-              />
-
-              <TextField
-                label="Title"
-                size="small"
+                error={errors.hireDate}
                 fullWidth
-                required
-                value={title}
-                onChange={(e) => {
-                  setTitle(e.target.value);
-                  if (errors.title) setErrors((prev) => ({ ...prev, title: undefined }));
-                }}
-                error={!!errors.title}
-                helperText={errors.title}
               />
+            </div>
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField
-                  label="Salary"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={salary}
-                  onChange={(e) => {
-                    setSalary(e.target.value);
-                    if (errors.salary) setErrors((prev) => ({ ...prev, salary: undefined }));
-                  }}
-                  error={!!errors.salary}
-                  helperText={errors.salary || "Optional"}
-                />
+            <Input
+              label="Location"
+              value={location}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
+              }}
+              error={errors.location}
+              helperText={errors.location || "Optional"}
+              fullWidth
+            />
 
-                <TextField
-                  label="Hire date"
-                  type="date"
-                  size="small"
-                  fullWidth
-                  required
-                  value={hireDate}
-                  onChange={(e) => {
-                    setHireDate(e.target.value);
-                    if (errors.hireDate) setErrors((prev) => ({ ...prev, hireDate: undefined }));
-                  }}
-                  error={!!errors.hireDate}
-                  helperText={errors.hireDate}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Stack>
-
-              <TextField
-                label="Location"
-                size="small"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input
+                label="Age"
+                type="number"
+                value={age}
+                onChange={(e) => {
+                  setAge(e.target.value);
+                  if (errors.age) setErrors((prev) => ({ ...prev, age: undefined }));
+                }}
+                error={errors.age}
+                helperText={errors.age || "Optional"}
                 fullWidth
-                value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value);
-                  if (errors.location) setErrors((prev) => ({ ...prev, location: undefined }));
-                }}
-                error={!!errors.location}
-                helperText={errors.location || "Optional"}
               />
 
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <TextField
-                  label="Age"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={age}
-                  onChange={(e) => {
-                    setAge(e.target.value);
-                    if (errors.age) setErrors((prev) => ({ ...prev, age: undefined }));
-                  }}
-                  error={!!errors.age}
-                  helperText={errors.age || "Optional"}
-                />
-
-                <TextField
-                  label="Performance score"
-                  type="number"
-                  size="small"
-                  fullWidth
-                  value={performance}
-                  onChange={(e) => {
-                    setPerformance(e.target.value);
-                    if (errors.performance) setErrors((prev) => ({ ...prev, performance: undefined }));
-                  }}
-                  error={!!errors.performance}
-                  helperText={errors.performance || "Optional (0–100)"}
-                />
-              </Stack>
-
-              {mustSetPassword && (
-                <>
-                  <Typography variant="subtitle2" color="text.secondary" mt={1}>
-                    Create your password
-                  </Typography>
-
-                  <TextField
-                    label="New password"
-                    type="password"
-                    size="small"
-                    fullWidth
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-                    }}
-                    error={!!errors.password}
-                    helperText={errors.password || "At least 6 characters"}
-                  />
-
-                  <TextField
-                    label="Confirm password"
-                    type="password"
-                    size="small"
-                    fullWidth
-                    value={confirm}
-                    onChange={(e) => {
-                      setConfirm(e.target.value);
-                      if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: undefined }));
-                    }}
-                    error={!!errors.confirm}
-                    helperText={errors.confirm}
-                  />
-                </>
-              )}
-
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                disabled={loading}
-                sx={{
-                  mt: 0.5,
-                  textTransform: "none",
-                  fontWeight: 600,
-                  borderRadius: 2,
-                  py: 1.1,
+              <Input
+                label="Performance score"
+                type="number"
+                value={performance}
+                onChange={(e) => {
+                  setPerformance(e.target.value);
+                  if (errors.performance) setErrors((prev) => ({ ...prev, performance: undefined }));
                 }}
-              >
-                {loading ? (
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <CircularProgress size={18} color="inherit" />
-                    <span>Saving...</span>
-                  </Stack>
-                ) : (
-                  "Save and continue"
-                )}
-              </Button>
-            </Stack>
-          </Box>
-        </Paper>
-      </Container>
-    </Box>
+                error={errors.performance}
+                helperText={errors.performance || "Optional (0–100)"}
+                fullWidth
+              />
+            </div>
+
+            {mustSetPassword && (
+              <>
+                <div className="pt-2">
+                  <h3 className="text-sm font-semibold text-gray-600 mb-4">Create your password</h3>
+                  <div className="space-y-4">
+                    <Input
+                      label="New password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                      }}
+                      error={errors.password}
+                      helperText={errors.password || "At least 6 characters"}
+                      fullWidth
+                    />
+
+                    <Input
+                      label="Confirm password"
+                      type="password"
+                      value={confirm}
+                      onChange={(e) => {
+                        setConfirm(e.target.value);
+                        if (errors.confirm) setErrors((prev) => ({ ...prev, confirm: undefined }));
+                      }}
+                      error={errors.confirm}
+                      fullWidth
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              fullWidth
+            >
+              {loading ? "Saving..." : "Save and continue"}
+            </Button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

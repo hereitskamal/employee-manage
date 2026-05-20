@@ -16,6 +16,7 @@ import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import { AttendanceRow } from "@/types/attendance";
+import { formatCurrency } from "@/lib/utils/currency";
 
 export default function EmployeeDashboard() {
     const { data: session } = useSession();
@@ -142,7 +143,7 @@ export default function EmployeeDashboard() {
                                     <Typography color="text.secondary" gutterBottom>
                                         My Revenue
                                     </Typography>
-                                    <Typography variant="h5">₹{totalRevenue.toLocaleString()}</Typography>
+                                    <Typography variant="h5">{formatCurrency(totalRevenue)}</Typography>
                                 </Box>
                                 <AttachMoneyIcon sx={{ fontSize: 40, color: "primary.main" }} />
                             </Box>

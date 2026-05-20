@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactECharts from 'echarts-for-react';
 import { TrendingUp, Users, DollarSign, Package, Calendar, Filter, Search } from 'lucide-react';
+import { formatCurrency, getCurrencySymbol } from '@/lib/utils/currency';
 
 const AdminDashboard = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly');
@@ -87,11 +88,12 @@ const AdminDashboard = () => {
 
         // Create profits data from monthly stats (last 4 months or use overall stats)
         if (data.stats) {
+          const symbol = getCurrencySymbol();
           const profitValues = [
-            { value: data.stats.totalRevenue * 0.25, name: `$${(data.stats.totalRevenue * 0.25 / 1000).toFixed(1)}K` },
-            { value: data.stats.totalRevenue * 0.20, name: `$${(data.stats.totalRevenue * 0.20 / 1000).toFixed(1)}K` },
-            { value: data.stats.totalRevenue * 0.15, name: `$${(data.stats.totalRevenue * 0.15 / 1000).toFixed(1)}K` },
-            { value: data.stats.totalRevenue * 0.10, name: `$${(data.stats.totalRevenue * 0.10 / 1000).toFixed(1)}K` }
+            { value: data.stats.totalRevenue * 0.25, name: `${symbol}${(data.stats.totalRevenue * 0.25 / 1000).toFixed(1)}K` },
+            { value: data.stats.totalRevenue * 0.20, name: `${symbol}${(data.stats.totalRevenue * 0.20 / 1000).toFixed(1)}K` },
+            { value: data.stats.totalRevenue * 0.15, name: `${symbol}${(data.stats.totalRevenue * 0.15 / 1000).toFixed(1)}K` },
+            { value: data.stats.totalRevenue * 0.10, name: `${symbol}${(data.stats.totalRevenue * 0.10 / 1000).toFixed(1)}K` }
           ];
           setProfitsData(profitValues);
         }
@@ -192,7 +194,7 @@ const AdminDashboard = () => {
         let result = `${params[0].axisValue}<br/>`;
         params.forEach((param: any) => {
           if (param.seriesName === 'Revenue') {
-            result += `${param.marker}${param.seriesName}: $${param.value.toLocaleString()}<br/>`;
+            result += `${param.marker}${param.seriesName}: ${formatCurrency(param.value)}<br/>`;
           } else {
             result += `${param.marker}${param.seriesName}: ${param.value}<br/>`;
           }
@@ -226,7 +228,7 @@ const AdminDashboard = () => {
         },
         axisLabel: {
           color: '#9ca3af',
-          formatter: (value: number) => `$${value.toLocaleString()}`,
+          formatter: (value: number) => formatCurrency(value),
         },
         splitLine: {
           lineStyle: {
@@ -314,14 +316,16 @@ const AdminDashboard = () => {
       borderColor: '#f0f0f0',
       borderRadius: 12,
       padding: 16,
-      formatter: '{b}: ${c}',
+      formatter: (params: any) => {
+        return `${params.name}: ${formatCurrency(params.value)}`;
+      },
     },
     series: [
       {
         type: 'pie',
         radius: ['0%', '30%'],
         center: ['50%', '50%'],
-        data: profitsData.length > 3 ? [profitsData[3]] : [{ value: 0, name: '$0' }],
+        data: profitsData.length > 3 ? [profitsData[3]] : [{ value: 0, name: formatCurrency(0) }],
         label: {
           show: true,
           position: 'center',
@@ -338,7 +342,7 @@ const AdminDashboard = () => {
         type: 'pie',
         radius: ['35%', '50%'],
         center: ['50%', '50%'],
-        data: profitsData.length > 2 ? [profitsData[2]] : [{ value: 0, name: '$0' }],
+        data: profitsData.length > 2 ? [profitsData[2]] : [{ value: 0, name: formatCurrency(0) }],
         label: {
           show: true,
           position: 'center',
@@ -355,7 +359,7 @@ const AdminDashboard = () => {
         type: 'pie',
         radius: ['55%', '70%'],
         center: ['50%', '50%'],
-        data: profitsData.length > 1 ? [profitsData[1]] : [{ value: 0, name: '$0' }],
+        data: profitsData.length > 1 ? [profitsData[1]] : [{ value: 0, name: formatCurrency(0) }],
         label: {
           show: true,
           position: 'center',
@@ -372,7 +376,7 @@ const AdminDashboard = () => {
         type: 'pie',
         radius: ['75%', '85%'],
         center: ['50%', '50%'],
-        data: profitsData.length > 0 ? [profitsData[0]] : [{ value: 0, name: '$0' }],
+        data: profitsData.length > 0 ? [profitsData[0]] : [{ value: 0, name: formatCurrency(0) }],
         label: {
           show: true,
           position: 'center',
@@ -575,7 +579,7 @@ const AdminDashboard = () => {
           <StatCard
             icon={DollarSign}
             title="Total Revenue"
-            value={`$${totalRevenue.toLocaleString()}`}
+            value={formatCurrency(totalRevenue)}
             subtitle="All time revenue"
             trend={revenueTrend}
             color="#3b82f6"
@@ -648,8 +652,8 @@ const AdminDashboard = () => {
                     <div className="text-xs text-gray-500">{activity.category}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-gray-900">${activity.amount.toLocaleString()}</div>
-                    <div className="text-xs text-gray-400">USD</div>
+                    <div className="font-semibold text-gray-900">{formatCurrency(activity.amount)}</div>
+                    <div className="text-xs text-gray-400">INR</div>
                   </div>
                 </div>
               )) : (
@@ -678,10 +682,7 @@ const AdminDashboard = () => {
               <div className="text-xs opacity-75 mb-4">Extended & Limited</div>
               <div className="text-2xl font-bold mb-1">+9.3%</div>
               <div className="text-3xl font-bold mb-4">
-                ${(stats?.week?.revenue || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
+                {formatCurrency(stats?.week?.revenue || 0, "withDecimals")}
               </div>
               <div className="h-16">
                 <ReactECharts option={miniStockOptions} style={{ height: '100%', width: '100%' }} />

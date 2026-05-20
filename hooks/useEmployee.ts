@@ -11,9 +11,12 @@ export default function useEmployee(id: string | null) {
       return;
     }
 
+    // Extract the actual ID if it includes query params (for refresh)
+    const actualId = id.split('?')[0];
+
     (async () => {
       setLoading(true);
-      const res = await fetch(`/api/employees/${id}`);
+      const res = await fetch(`/api/employees/${actualId}`);
       const data = await res.json();
       
       if (res.ok && data.success && data.data) {

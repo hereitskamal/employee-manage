@@ -23,6 +23,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import { formatCurrency } from "@/lib/utils/currency";
 
 interface DailyReportModalProps {
     open: boolean;
@@ -111,10 +112,6 @@ export default function DailyReportModal({
         const hours = Math.floor(minutes / 60);
         const mins = minutes % 60;
         return `${hours}h ${mins}m`;
-    };
-
-    const formatCurrency = (amount: number) => {
-        return `₹${amount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     };
 
     // Use attendance from props or from fetched stats
@@ -294,11 +291,11 @@ export default function DailyReportModal({
                                             </Typography>
                                         </Box>
                                         <Typography variant="h5" sx={{ mt: 0.5 }}>
-                                            {formatCurrency(dailyStats.sales.totalRevenue)}
+                                            {formatCurrency(dailyStats.sales.totalRevenue, "withDecimals")}
                                         </Typography>
                                         {dailyStats.sales.completedRevenue !== dailyStats.sales.totalRevenue && (
                                             <Typography variant="caption" sx={{ mt: 0.5, display: "block" }}>
-                                                {formatCurrency(dailyStats.sales.completedRevenue)} completed
+                                                {formatCurrency(dailyStats.sales.completedRevenue, "withDecimals")} completed
                                             </Typography>
                                         )}
                                     </Box>
@@ -335,7 +332,7 @@ export default function DailyReportModal({
                                                     </Box>
                                                     <Box sx={{ textAlign: "right" }}>
                                                         <Typography variant="body2" fontWeight={600}>
-                                                            {formatCurrency(sale.totalAmount)}
+                                                            {formatCurrency(sale.totalAmount, "withDecimals")}
                                                         </Typography>
                                                         <Chip
                                                             label={sale.status}

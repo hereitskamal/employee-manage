@@ -1,8 +1,10 @@
 // types/next-auth.d.ts
 import "next-auth";
 import { DefaultSession } from "next-auth";
+import { UserRole } from "@/lib/roles";
 
-export type UserRole = "admin" | "manager" | "employee" | "helper" | "spc";
+// Re-export for convenience
+export type { UserRole };
 
 declare module "next-auth" {
 
