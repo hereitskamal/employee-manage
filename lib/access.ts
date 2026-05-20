@@ -49,7 +49,7 @@ export function getDefaultDashboardRoute(role: string | undefined): string {
 export type Resource = "employees" | "products" | "sales" | "attendance" | "orders" | "cart";
 export type Action = "read" | "create" | "update" | "delete" | "manage" | "export" | "view_analysis";
 
-export const ROLE_PERMISSIONS: Record<UserRole, Partial<Record<Resource, Action[]>>> = {
+export const ROLE_PERMISSIONS: Record<string, Partial<Record<Resource, Action[]>>> = {
   admin: {
     employees: ["read", "create", "update", "delete", "manage", "export"],
     products:  ["read", "create", "update", "delete", "manage", "export"],
