@@ -7,7 +7,7 @@ import { z } from "zod";
 /**
  * All available roles in the system
  */
-export const ROLES = ["admin", "manager", "employee", "helper", "spc"] as const;
+export const ROLES = ["buyer", "customer", "admin", "manager", "employee", "helper", "spc"] as const;
 
 /**
  * TypeScript type for user roles
@@ -16,9 +16,11 @@ export type UserRole = typeof ROLES[number];
 
 /**
  * Role hierarchy ranking (higher number = more privileges)
- * Helper has same rank as employee (1)
+ * Buyer and Customer have rank 0 (lowest), Helper has same rank as employee (1)
  */
 export const ROLE_RANK: Record<UserRole, number> = {
+  buyer: 0,
+  customer: 0,
   admin: 3,
   manager: 2,
   spc: 2,

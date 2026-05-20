@@ -24,14 +24,21 @@ export async function middleware(req: NextRequest) {
 
   const isAuthPage = AUTH_PAGES.includes(pathname);
   const isApiAuth = pathname.startsWith("/api/auth");
-  const isPublic = isAuthPage || isApiAuth;
+  const isPublicApi = pathname.startsWith("/api/products/public");
+  const isPublicPage = pathname === "/shop" || pathname.startsWith("/products/");
+  const isPublic = isAuthPage || isApiAuth || isPublicApi || isPublicPage;
 
   /**
    * ---------------------------------------------------------
-   * 1. UNAUTHENTICATED USERS → FORCE LOGIN
+   * 1. UNAUTHENTICATED USERS → FORCE LOGIN (except public pages)
    * ---------------------------------------------------------
    */
   if (!token && !isPublic) {
+    // Allow public shop and product pages
+    if (isPublicPage) {
+      return NextResponse.next();
+    }
+    
     const loginUrl = req.nextUrl.clone();
     loginUrl.pathname = "/login";
 
@@ -65,6 +72,13 @@ export async function middleware(req: NextRequest) {
   if (token && pathname.startsWith("/dashboard")) {
     const role = token.role as UserRole | undefined;
 
+    // Explicitly block buyers and customers from accessing dashboard
+    if (role === "buyer" || role === "customer") {
+      const url = req.nextUrl.clone();
+      url.pathname = "/shop";
+      return NextResponse.redirect(url);
+    }
+
     // Check if user can access this route
     if (!canAccessRoute(role, pathname)) {
       const url = req.nextUrl.clone();
@@ -77,8 +91,19 @@ export async function middleware(req: NextRequest) {
 }
 
 /**
- * Matcher: Apply middleware ONLY to dashboard & auth pages
+ * Matcher: Apply middleware to protected routes
+ * Public routes like /shop and /products are handled in middleware logic
  */
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: [
+    "/dashboard/:path*",
+    "/login",
+    "/register",
+    "/account/:path*",
+    "/cart",
+    "/checkout",
+    "/orders/:path*",
+    "/shop",
+    "/products/:path*",
+  ],
 };

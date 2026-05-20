@@ -87,7 +87,7 @@ export const authOptions: NextAuthOptions = {
             email,
             image: user.image,
             provider: "google",
-            role: "employee",
+            role: "buyer",
             isProfileComplete: false,
             mustSetPassword: false,
           });
