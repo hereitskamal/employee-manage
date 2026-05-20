@@ -2,7 +2,8 @@
 // Central definition of all access control rules in the system
 // This is the single source of truth for accessibility/access control
 
-import { UserRole, ROLES } from "./roles";
+import { UserRole } from "./roles";
+export type { UserRole };
 
 /**
  * Route access definitions
@@ -29,6 +30,14 @@ export const ROUTE_ACCESS: Record<string, UserRole[]> = {
   "/dashboard/products": ["admin", "manager", "employee", "helper", "spc"],
   "/dashboard/sales": ["admin", "manager", "employee", "helper"],
   "/dashboard/attendance": ["admin", "manager", "employee", "helper", "spc"],
+  
+  // Customer/Buyer routes (public e-commerce)
+  "/shop": [], // Public - no auth required
+  "/products": [], // Public - no auth required
+  "/cart": ["buyer", "customer", "admin", "manager", "employee", "helper", "spc"],
+  "/checkout": ["buyer", "customer", "admin", "manager", "employee", "helper", "spc"],
+  "/account": ["buyer", "customer", "admin", "manager", "employee", "helper", "spc"],
+  "/orders": ["buyer", "customer", "admin", "manager", "employee", "helper", "spc"],
 };
 
 /**
@@ -69,6 +78,9 @@ export function getDefaultDashboardRoute(role: UserRole | undefined): string {
     case "employee":
     case "helper":
       return "/dashboard/employee";
+    case "customer":
+    case "buyer":
+      return "/shop";
     default:
       return "/dashboard";
   }
@@ -77,7 +89,7 @@ export function getDefaultDashboardRoute(role: UserRole | undefined): string {
 /**
  * Resource types in the system
  */
-export type Resource = "employees" | "products" | "sales" | "attendance";
+export type Resource = "employees" | "products" | "sales" | "attendance" | "orders" | "cart";
 
 /**
  * Action types
@@ -118,6 +130,16 @@ export const ROLE_PERMISSIONS: Record<
     products: ["read"],
     sales: ["read", "create"],
     attendance: ["read"],
+  },
+  customer: {
+    products: ["read"],
+    cart: ["manage"],
+    orders: ["read", "create"],
+  },
+  buyer: {
+    products: ["read"],
+    cart: ["manage"],
+    orders: ["read", "create"],
   },
 };
 
