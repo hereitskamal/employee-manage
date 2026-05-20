@@ -14,9 +14,9 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Store,
 } from "lucide-react";
 import { useState } from "react";
-import type { UserRole } from "@/lib/roles";
 import { getRolesForRoute } from "@/lib/access";
 
 // Helper function to get role-specific dashboard path
@@ -40,8 +40,9 @@ const navItems: Array<{
   label: string;
   path: string;
   icon: React.ComponentType<{ className?: string }>;
-  roles: UserRole[];
+  roles: string[];
   isDynamic?: boolean;
+  isExternal?: boolean; // For routes outside dashboard
 }> = [
   {
     label: "Dashboard",
@@ -49,6 +50,13 @@ const navItems: Array<{
     icon: LayoutDashboard,
     roles: getRolesForRoute("/dashboard"),
     isDynamic: true,
+  },
+  {
+    label: "Shop",
+    path: "/shop",
+    icon: Store,
+    roles: ["admin", "manager", "employee", "helper", "spc"],
+    isExternal: true,
   },
   {
     label: "Employees",
@@ -109,7 +117,7 @@ export default function Sidebar() {
 
         if (response.ok) {
           const data = await response.json();
-          const todayRecord = data.attendance?.find(
+          const todayRecord = data.data?.attendance?.find(
             (record: { date: string; logoutTime: string | null }) => {
               const recordDate = new Date(record.date);
               return (
@@ -164,8 +172,14 @@ export default function Sidebar() {
 
   const activePath = visibleNavItems.reduce((best, item) => {
     const itemPath = item.isDynamic ? getDashboardPath(role) : item.path;
-    const isMatch = pathname === itemPath || pathname.startsWith(itemPath + "/");
-    if (isMatch && itemPath.length > best.length) return itemPath;
+    // For external routes like /shop, check exact match or if we're on that page
+    if (item.isExternal) {
+      const isMatch = pathname === itemPath || pathname.startsWith(itemPath + "/");
+      if (isMatch && itemPath.length > best.length) return itemPath;
+    } else {
+      const isMatch = pathname === itemPath || pathname.startsWith(itemPath + "/");
+      if (isMatch && itemPath.length > best.length) return itemPath;
+    }
     return best;
   }, "");
 
@@ -219,8 +233,10 @@ export default function Sidebar() {
               const itemPath = item.isDynamic
                 ? getDashboardPath(role)
                 : item.path;
-              const selected =
-                itemPath === activePath || pathname.startsWith(itemPath + "/");
+              // For external routes, check if we're on that page
+              const selected = item.isExternal
+                ? pathname === itemPath || pathname.startsWith(itemPath + "/")
+                : itemPath === activePath || pathname.startsWith(itemPath + "/");
               const Icon = item.icon;
 
               return (
