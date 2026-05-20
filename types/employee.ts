@@ -10,7 +10,9 @@ export interface EmployeeRow {
   salary: number;
   age?: number;
   hireDate: string | Date;     // ✅ same
+  role?: string;
   performance?: number;
+  isActive?: boolean;
   createdAt?: Date | string;
   updatedAt?: Date | string;
   [key: string]: unknown; // Allow additional properties for flexibility
