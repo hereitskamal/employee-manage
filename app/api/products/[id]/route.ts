@@ -1,104 +1,81 @@
 // app/api/products/[id]/route.ts
-import { NextResponse, NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/getSession";
 import { connectToDB } from "@/lib/db";
 import { Product } from "@/models/Product";
 import mongoose from "mongoose";
 import { resolveRouteParams, type RouteContext } from "@/types/nextjs";
+import { success, failure } from "@/lib/apiResponse";
 
-/**
- * GET /api/products/:id
- * Fetch a single product by ID
- */
-export async function GET(req: NextRequest, context: RouteContext) {
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
+
+export async function GET(req: Request, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+    const session = await getSession(req);
+    if (!session) return failure("Unauthorized", 401);
 
     const params = await resolveRouteParams(context);
     const id = params.id || "";
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ message: "Invalid product ID" }, { status: 400 });
-    }
+    if (!mongoose.Types.ObjectId.isValid(id)) return failure("Invalid product ID", 400);
 
     await connectToDB();
 
-    const isPrivileged =
-      session.user?.role === "admin" || session.user?.role === "manager";
+    const isPrivileged = session.role === "admin" || session.role === "manager";
+    const productDoc = await Product.findById(id).populate("createdBy", "name email").lean();
 
-    const productDoc = await Product.findById(id)
-      .populate("createdBy", "name email")
-      .lean();
+    if (!productDoc) return failure("Product not found", 404);
 
-    if (!productDoc) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
+    if (!isPrivileged) {
+      const doc = productDoc as Record<string, unknown>;
+      delete doc.purchaseRate;
+      delete doc.distributorRate;
     }
 
-    if (!isPrivileged && productDoc) {
-      // remove sensitive fields for non privileged users
-      const restrictedDoc = productDoc as Record<string, unknown>;
-      delete restrictedDoc.purchaseRate;
-      delete restrictedDoc.distributorRate;
-    }
-
-    return NextResponse.json(productDoc);
+    return success({ product: productDoc });
   } catch (error) {
     console.error("Fetch product error:", error);
-    return NextResponse.json({ message: "Failed to fetch product" }, { status: 500 });
+    return failure("Failed to fetch product", 500);
   }
 }
 
-/**
- * PUT /api/products/:id
- * Update product (admin & manager only)
- */
-export async function PUT(req: NextRequest, context: RouteContext) {
+export async function PUT(req: Request, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession(req);
 
-    if (!session || (session.user?.role !== "admin" && session.user?.role !== "manager")) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!session || (session.role !== "admin" && session.role !== "manager")) {
+      return failure("Unauthorized", 401);
     }
 
     const params = await resolveRouteParams(context);
     const id = params.id || "";
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ message: "Invalid product ID" }, { status: 400 });
-    }
+    if (!mongoose.Types.ObjectId.isValid(id)) return failure("Invalid product ID", 400);
 
     const body = await req.json();
     const {
-      name,
-      category,
-      brand,
-      modelNo,
-      modelYear,
-      image,
-      purchaseRate,
-      distributorRate,
-      minSaleRate,
-      tagRate,
-      starRating,
-      criticalSellScore,
-      stock,
+      name, category, brand, modelNo, modelYear, image,
+      purchaseRate, distributorRate, minSaleRate, tagRate,
+      starRating, criticalSellScore, stock, description, sku,
     } = body;
 
     await connectToDB();
 
     const product = await Product.findById(id);
-    if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
-    }
+    if (!product) return failure("Product not found", 404);
 
-    if (name) product.name = name;
-    if (category) product.category = category;
-    if (brand) product.brand = brand;
-    if (modelNo) product.modelNo = modelNo;
+    if (name !== undefined) product.name = name;
+    if (category !== undefined) product.category = category;
+    if (brand !== undefined) product.brand = brand;
+    if (modelNo !== undefined) product.modelNo = modelNo;
     if (modelYear != null) product.modelYear = Number(modelYear);
     if (image != null) product.image = image;
     if (purchaseRate != null) product.purchaseRate = Number(purchaseRate);
@@ -108,47 +85,41 @@ export async function PUT(req: NextRequest, context: RouteContext) {
     if (starRating != null) product.starRating = Number(starRating);
     if (criticalSellScore != null) product.criticalSellScore = Number(criticalSellScore);
     if (stock != null) product.stock = Number(stock);
+    if (description !== undefined) product.description = description;
+    if (sku !== undefined) product.sku = sku;
 
-    product.updatedBy = session.user.id ? new mongoose.Types.ObjectId(session.user.id) : undefined;
+    if (session.id) product.updatedBy = new mongoose.Types.ObjectId(session.id);
 
     await product.save();
 
-    return NextResponse.json({ product, message: "Product updated successfully" });
+    return success({ product });
   } catch (error) {
     console.error("Update product error:", error);
-    return NextResponse.json({ message: "Failed to update product" }, { status: 500 });
+    return failure("Failed to update product", 500);
   }
 }
 
-/**
- * DELETE /api/products/:id
- * Delete product (admin & manager only)
- */
-export async function DELETE(req: NextRequest, context: RouteContext) {
+export async function DELETE(req: Request, context: RouteContext) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getSession(req);
 
-    if (!session || (session.user?.role !== "admin" && session.user?.role !== "manager")) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (!session || (session.role !== "admin" && session.role !== "manager")) {
+      return failure("Unauthorized", 401);
     }
 
     const params = await resolveRouteParams(context);
     const id = params.id || "";
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json({ message: "Invalid product ID" }, { status: 400 });
-    }
+    if (!mongoose.Types.ObjectId.isValid(id)) return failure("Invalid product ID", 400);
 
     await connectToDB();
 
     const product = await Product.findByIdAndDelete(id);
-    if (!product) {
-      return NextResponse.json({ message: "Product not found" }, { status: 404 });
-    }
+    if (!product) return failure("Product not found", 404);
 
-    return NextResponse.json({ message: "Product deleted successfully", deletedId: id });
+    return success({ deletedId: id });
   } catch (error) {
     console.error("Delete product error:", error);
-    return NextResponse.json({ message: "Failed to delete product" }, { status: 500 });
+    return failure("Failed to delete product", 500);
   }
 }
