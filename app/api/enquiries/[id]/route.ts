@@ -40,6 +40,14 @@ export async function GET(req: Request, context: RouteContext) {
 
     if (!enquiry) return failure("Enquiry not found", 404);
 
+    // spc can only view their own enquiries
+    if (session.role === "spc" && session.id) {
+      const ownerId = typeof enquiry.createdBy === "object" && enquiry.createdBy
+        ? (enquiry.createdBy as any)._id?.toString()
+        : enquiry.createdBy?.toString();
+      if (ownerId !== session.id) return failure("Unauthorized", 403);
+    }
+
     return success({ enquiry });
   } catch (error) {
     console.error("Fetch enquiry error:", error);
@@ -66,6 +74,11 @@ export async function PUT(req: Request, context: RouteContext) {
 
     const enquiry = await Enquiry.findById(id);
     if (!enquiry) return failure("Enquiry not found", 404);
+
+    // spc can only update/log on their own enquiries
+    if (session.role === "spc" && session.id) {
+      if (enquiry.createdBy?.toString() !== session.id) return failure("Unauthorized", 403);
+    }
 
     if (addCallLog) {
       const { outcome, confirmDate, notes } = addCallLog;

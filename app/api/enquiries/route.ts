@@ -34,6 +34,12 @@ export async function GET(req: Request) {
     await connectToDB();
 
     const query: Record<string, unknown> = {};
+
+    // spc can only see enquiries they created
+    if (session.role === "spc" && session.id) {
+      query.createdBy = new mongoose.Types.ObjectId(session.id);
+    }
+
     if (statusFilter && statusFilter !== "all") query.status = statusFilter;
     if (search) {
       query.$or = [
