@@ -113,6 +113,7 @@ export async function POST(req: Request) {
             starRating,
             criticalSellScore,
             stock,
+            attributes,
         } = body;
 
         /**
@@ -157,6 +158,7 @@ export async function POST(req: Request) {
             starRating: starRating != null ? Number(starRating) : undefined,
             criticalSellScore: criticalSellScore != null ? Number(criticalSellScore) : undefined,
             stock: Number(stock),
+            attributes: attributes && typeof attributes === "object" ? attributes : undefined,
             createdBy: session.id ? new mongoose.Types.ObjectId(session.id) : undefined,
         });
 

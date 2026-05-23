@@ -64,7 +64,7 @@ export async function PUT(req: Request, context: RouteContext) {
     const {
       name, category, brand, modelNo, modelYear, image,
       purchaseRate, distributorRate, minSaleRate, tagRate,
-      starRating, criticalSellScore, stock, description, sku,
+      starRating, criticalSellScore, stock, description, sku, attributes,
     } = body;
 
     await connectToDB();
@@ -87,6 +87,7 @@ export async function PUT(req: Request, context: RouteContext) {
     if (stock != null) product.stock = Number(stock);
     if (description !== undefined) product.description = description;
     if (sku !== undefined) product.sku = sku;
+    if (attributes && typeof attributes === "object") product.attributes = attributes;
 
     if (session.id) product.updatedBy = new mongoose.Types.ObjectId(session.id);
 

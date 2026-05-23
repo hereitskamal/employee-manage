@@ -8,13 +8,30 @@ export interface IProduct extends mongoose.Document {
   modelNo: string;
   modelYear?: number;
 
-  image?: string;
+  // e-commerce fields
+  slug?: string;         // SEO-friendly URL
+  description?: string;  // Long product description
+  images?: string[];     // Multiple product images
+  sku?: string;          // Stock keeping unit
+  isActive?: boolean;    // Product visibility flag
+  weight?: number;       // For shipping calculations
+  dimensions?: {        // Product dimensions
+    length?: number;
+    width?: number;
+    height?: number;
+    unit?: string; // "cm", "inch", etc.
+  };
+
+  image?: string;        // Legacy single image field
 
   // pricing
   purchaseRate?: number;     // visible only to admin/manager
   distributorRate?: number;  // visible only to admin/manager
   minSaleRate: number;       // base rate visible to everyone
   tagRate?: number;          // MRP / label rate
+
+  // category-specific specs (e.g. { Ton: "1.5", Star: "3", Type: "Inverter Split" })
+  attributes?: Record<string, string | number>;
 
   // ratings & stock
   starRating?: number;           // 1–5 star rating
@@ -56,6 +73,41 @@ const ProductSchema = new Schema<IProduct>(
       type: Number,
     },
 
+    // e-commerce fields
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    images: {
+      type: [String],
+      default: [],
+    },
+    sku: {
+      type: String,
+      trim: true,
+      sparse: true,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    weight: {
+      type: Number,
+      min: 0,
+    },
+    dimensions: {
+      length: { type: Number, min: 0 },
+      width: { type: Number, min: 0 },
+      height: { type: Number, min: 0 },
+      unit: { type: String, default: "cm" },
+    },
+
     image: {
       type: String,
     },
@@ -77,6 +129,11 @@ const ProductSchema = new Schema<IProduct>(
     tagRate: {
       type: Number,
       min: 0,
+    },
+
+    attributes: {
+      type: Schema.Types.Mixed,
+      default: {},
     },
 
     // ratings & stock
@@ -114,6 +171,9 @@ const ProductSchema = new Schema<IProduct>(
 // Used in: Product filters (useProducts hook), product search and filtering UI
 // Direction: Both ascending (1) for equality and range queries on category/brand combinations
 ProductSchema.index({ category: 1, brand: 1 });
+ProductSchema.index({ slug: 1 }, { unique: true, sparse: true });
+ProductSchema.index({ isActive: 1, category: 1 }); // For public catalog filtering
+ProductSchema.index({ sku: 1 }, { unique: true, sparse: true });
 
 export const Product =
   models.Product || mongoose.model<IProduct>("Product", ProductSchema);
